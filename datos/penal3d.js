@@ -370,7 +370,7 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       c.className = "cvPatada gl"; c.style.display = "block"; c.style.transition = "none"; c.style.opacity = "1";
       cv.style.display = "none";
       if (panel) { panel.classList.add("penal", "pre"); }
-      bs.textContent = (typeof L === "function" && L().saltar) || "Saltear animación";
+      bs.textContent = (typeof L === "function" && L().saltar) || "Skip ⏭";
       M.medir(); est = "espera"; res = null; btn.disabled = false; zIni = 2.9; giroIni = 1.25; frente = null; rt.className = "resPenal"; tPrev = 0;
       BAR.iniciar(opcionesPenal());
       ponerPelotaEnElPunto(); sombrasFiguras(); M.red().scale.z = 1; M.huella().visible = false; M.keeper().raiz.visible = true; M.keeper().raiz.rotation.set(0, 0, 0);

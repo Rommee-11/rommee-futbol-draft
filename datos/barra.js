@@ -16,7 +16,7 @@ const BarraTiming = (function () {
   const SUERTE = { verde: 1.5, amarillo: 1.0, naranja: 0.6, rojo: 0.2 }, SUERTE_ATAJA = -0.3, SUERTE_AFUERA = -0.6;
   const ORDEN = ["rojo", "naranja", "amarillo", "verde"];
   const COLOR = { verde: "#2ecc71", amarillo: "#ffd23f", naranja: "#f77f00", rojo: "#e63946" };
-  const T_BARRIDO = 0.85, T_MIN = 0.5, ESPERA_INI = 0.8;   // segundos que tarda una pasada, mínimo, y espera antes de arrancar
+  const T_BARRIDO = 0.58, T_MIN = 0.34, ESPERA_INI = 0.8;   // segundos que tarda una pasada, mínimo, y espera antes de arrancar
 
   function zonaEn(x, c, mult) {
     const d = Math.abs(x - c);
@@ -54,7 +54,7 @@ const BarraTiming = (function () {
         if (!activo) { return; }
         const dt = tPrev ? Math.min(0.05, (ts - tPrev) / 1000) : 0; tPrev = ts;
         if (espera > 0) { espera -= dt; return; }
-        const dur = Math.max(T_MIN, T_BARRIDO * Math.pow(0.93, pasadas));
+        const dur = Math.max(T_MIN, T_BARRIDO * Math.pow(0.92, pasadas));
         pos += dir * dt / dur;
         if (pos >= 1) { pos = 1; dir = -1; pasadas++; } else if (pos <= 0) { pos = 0; dir = 1; pasadas++; }
         poner();

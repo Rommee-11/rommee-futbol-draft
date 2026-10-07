@@ -376,7 +376,7 @@ const Multi = (function () {
   }
   function empezarMiTurno() {
     PT1.detener(); el("zonaRuleta").style.display = "none"; el("presentacion").classList.remove("visible");
-    slotActivo = null; fase = 0; sel = {}; girando = false; comodinPuesto = false; el("aviso").textContent = L().tocaPuesto; dibujarCancha();
+    slotActivo = null; fase = 0; sel = {}; girando = false; comodinPuesto = false; pickRes = null; tokGiro++; revelaOculta(); el("aviso").textContent = L().tocaPuesto; dibujarCancha();
     eTurno.style.display = "block";
   }
   function restante() { const jv = S.v && S.v.juego; return jv ? Math.max(0, (jv.t0 + jv.dur - Red.ahora()) / 1000) : 0; }

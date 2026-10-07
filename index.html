@@ -230,8 +230,39 @@ canvas.cvPatada.gl { z-index: -1; }
 #selFormacion.penal.pre .escena3d, #selFormacion.penal.pre #formNombre, #selFormacion.penal.pre [onclick^="pasoForm"], #selFormacion.penal.pre [onclick^="empezarDraft"] { visibility: hidden; }
 #selFormacion.penal.pre { background: none; }
 #selFormacion.penal.pre .escena3d { flex: 1 1 auto; height: auto; }
-.btnSaltar { display: none; align-self: center; margin: 8px auto 0; padding: 6px 16px; border-radius: 20px; border: 2px solid rgba(255,255,255,.65); background: rgba(10,20,40,.72); color: #fff; font-size: 13px; letter-spacing: .5px; cursor: pointer; }
-.btnSaltar:hover { background: rgba(30,60,110,.9); }
+.btnSaltar { display: none; align-self: center; margin: 8px auto 0; padding: 12px 30px; min-width: 120px; border-radius: 999px; border: 2px solid rgba(255,255,255,.9); background: linear-gradient(180deg, #4aa3ff 0%, #1a56c8 55%, #123a8f 100%); color: #fff; font-size: 18px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 2px 0 rgba(0,0,0,.45); box-shadow: 0 5px 0 #0a2563, 0 8px 18px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.45); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform .08s, box-shadow .08s; }
+.btnSaltar:hover { filter: brightness(1.12); }
+.btnSaltar:active { transform: translateY(4px); box-shadow: 0 1px 0 #0a2563, 0 3px 8px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.35); }
+
+/* ===== Revelado en primer plano de cada opción que sale en la ruleta ===== */
+#zonaRuleta.auto #botonGirar, #zonaRuleta.auto .ayudaP, #zonaRuleta.auto #barraFuerza1, #zonaRuleta.auto .filaPatea { display: none; }
+#revela { position: fixed; inset: 0; z-index: 45; display: none; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; perspective: 1100px; background: radial-gradient(circle at 50% 45%, rgba(12,70,46,.95), rgba(0,6,16,.98) 74%); opacity: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#revela.on { display: flex; animation: rvEntra .35s ease-out forwards; }
+#revela.off { display: flex; animation: rvSale .6s ease-in forwards; }
+#revela.manual { cursor: default; }
+@keyframes rvEntra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rvSale { 0% { opacity: 1; } 100% { opacity: 0; } }
+#rvRayos { position: absolute; left: 50%; top: 50%; width: 190vmax; height: 190vmax; margin: -95vmax 0 0 -95vmax; background: repeating-conic-gradient(rgba(255,215,64,.20) 0 8deg, transparent 8deg 16deg); -webkit-mask-image: radial-gradient(circle, #000 4%, transparent 42%); mask-image: radial-gradient(circle, #000 4%, transparent 42%); animation: rvGira 16s linear infinite; pointer-events: none; }
+@keyframes rvGira { to { transform: rotate(360deg); } }
+#rvChispas { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+#rvChispas i { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; opacity: 0; box-shadow: 0 0 10px currentColor; animation: rvChispa 1.2s ease-out forwards; }
+@keyframes rvChispa { 0% { opacity: 1; transform: translate(0,0) scale(1.2); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.2); } }
+#rvCarta { position: relative; box-sizing: border-box; padding: 26px 18px 24px; border-radius: 30px; border: 5px solid #ffd23f; text-align: center; color: #fff; box-shadow: 0 0 0 4px rgba(0,0,0,.35), 0 0 60px rgba(255,210,63,.55), 0 20px 50px rgba(0,0,0,.7), inset 0 0 40px rgba(255,255,255,.12); transform-style: preserve-3d; max-height: 92vh; }
+#revela.on #rvCarta { animation: rvCarta .8s cubic-bezier(.2,1.3,.4,1) both, rvLatido 1.6s ease-in-out .8s infinite; }
+#revela.off #rvCarta { animation: rvCartaSale .6s ease-in forwards; }
+@keyframes rvCarta { 0% { transform: scale(.15) rotateY(-100deg); opacity: 0; filter: blur(10px); } 55% { opacity: 1; filter: blur(0); } 100% { transform: scale(1) rotateY(0); opacity: 1; } }
+@keyframes rvLatido { 50% { transform: scale(1.035); box-shadow: 0 0 0 4px rgba(0,0,0,.35), 0 0 90px rgba(255,210,63,.8), 0 20px 50px rgba(0,0,0,.7), inset 0 0 40px rgba(255,255,255,.18); } }
+@keyframes rvCartaSale { 0% { transform: scale(1); opacity: 1; filter: blur(0); } 100% { transform: scale(1.45); opacity: 0; filter: blur(20px); } }
+#rvEtiq { font-size: clamp(14px, 4vw, 20px); font-weight: 900; letter-spacing: .3em; text-transform: uppercase; color: #ffd23f; text-shadow: 0 2px 0 rgba(0,0,0,.5); }
+#rvIco { font-size: clamp(70px, 22vw, 130px); line-height: 1.1; margin: 8px 0; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+#rvIco img { height: clamp(60px, 18vw, 110px); width: auto; border-radius: 10px; border: 3px solid rgba(255,255,255,.85); box-shadow: 0 6px 16px rgba(0,0,0,.5); }
+#rvNombre { font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; line-height: 1.08; text-shadow: 0 4px 0 rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.25); overflow-wrap: normal; word-break: keep-all; }
+#rvNivel { display: none; font-size: clamp(70px, 24vw, 140px); font-weight: 900; line-height: 1; margin-top: 6px; text-shadow: 0 5px 0 rgba(0,0,0,.5); }
+#rvNivel.oro { animation: rvBrillo 1.2s ease-in-out infinite; }
+@keyframes rvBrillo { 50% { text-shadow: 0 5px 0 rgba(0,0,0,.5), 0 0 34px #ffd700, 0 0 60px #ffd700; } }
+#rvDatos { font-size: clamp(15px, 4.4vw, 22px); margin-top: 8px; opacity: .95; }
+#rvBoton { display: none; margin: 18px auto 0; padding: 14px 34px; font-size: clamp(18px, 5vw, 26px); font-weight: 900; letter-spacing: 2px; border-radius: 999px; border: 3px solid #fff; background: linear-gradient(180deg, #ffe066, #f5a800); color: #3b2a00; cursor: pointer; box-shadow: 0 6px 0 #8a5a00, 0 10px 22px rgba(0,0,0,.5); touch-action: manipulation; }
+#rvBoton:active { transform: translateY(4px); box-shadow: 0 2px 0 #8a5a00; }
 .penal.pre .btnSaltar { display: block; }
 .filaPatea { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .filaPatea .btnSaltar { margin: 0; }
@@ -362,6 +393,14 @@ canvas.cvPatada.gl { z-index: -1; }
     </div>
   </div>
 
+  <div id="revela" onclick="revelaToque()">
+    <div id="rvRayos"></div><div id="rvChispas"></div>
+    <div id="rvCarta">
+      <div id="rvEtiq"></div><div id="rvIco"></div><div id="rvNombre"></div><div id="rvNivel"></div><div id="rvDatos"></div>
+      <button id="rvBoton" onclick="event.stopPropagation(); revelaAvanzar()"></button>
+    </div>
+  </div>
+
   <div id="presentacion">
     <div id="pEtiqueta"></div>
     <div id="pNivel"></div>
@@ -430,6 +469,7 @@ canvas.cvPatada.gl { z-index: -1; }
     };
     const NOMBRE_FASE = ["Liga", "Equipo", "Nacionalidad", "Jugador"];
 
+    let pickRes = null, tokGiro = 0, revAct = null, revTimer = 0, revOcultar = 0;   // pickRes: resultado del ÚNICO penal de este jugador (vale para las 4 ruletas)
     let slots = [], slotActivo = null, fase = 0, sel = {}, lista = [], girando = false, jugadorActual = null;
 
     function el(id) { return document.getElementById(id); }
@@ -518,7 +558,7 @@ canvas.cvPatada.gl { z-index: -1; }
     function elegirPuesto(i) {
       if (window.Multi && Multi.activo && !Multi.miTurno()) { return; }       // en multijugador solo se juega en tu turno
       if (girando || fase > 1 || slots[i].jugador) { return; }   // una vez que giraste, terminá este jugador
-      slotActivo = i; fase = 1; sel = {};
+      slotActivo = i; fase = 1; sel = {}; pickRes = null; tokGiro++;
       el("aviso").textContent = TT[ajustes.idioma].puestoElegido + ": " + POS[slots[i].pos];
       dibujarCancha();
       mostrarRuleta();
@@ -604,7 +644,7 @@ canvas.cvPatada.gl { z-index: -1; }
     }
     function quitarJugador(i) {        // el jugador se va y se vuelve a sortear ese puesto
       if (window.Multi && Multi.activo) { Multi.alQuitar(i); }
-      slots[i].jugador = null; slotActivo = i; fase = 1; sel = {}; comodinPuesto = false;
+      slots[i].jugador = null; slotActivo = i; fase = 1; sel = {}; comodinPuesto = false; pickRes = null; tokGiro++;
       dibujarCancha(); mostrarRuleta();
     }
     function aplicarCarta(id) {
@@ -618,50 +658,71 @@ canvas.cvPatada.gl { z-index: -1; }
         else { q = idx.sort(function (a, b) { return slots[a].jugador.nivel - slots[b].jugador.nivel; })[0]; }
         quitarJugador(q); return;
       }
-      fase = 1; sel = {}; mostrarRuleta();
+      fase = 1; sel = {}; pickRes = null; tokGiro++; mostrarRuleta();      // la carta se gastó: este puesto empieza de nuevo (con penal nuevo)
     }
+
+    // ===== Revelado: la opción que salió aparece GRANDE al centro, con efectos, y se difumina para dar paso a la siguiente ruleta =====
+    function revelaMostrar(o) {
+      const r = el("revela"), c = el("rvCarta"), cw = Math.round(Math.min(innerWidth * 0.9, 540));
+      clearTimeout(revTimer); clearTimeout(revOcultar);
+      c.style.width = cw + "px"; c.style.background = "linear-gradient(160deg," + o.pal[0] + "," + o.pal[1] + ")";
+      el("rvEtiq").textContent = o.etiq; el("rvIco").innerHTML = o.ico;
+      const n = el("rvNombre"); n.textContent = o.nombre; n.style.fontSize = Math.round(tamanoNombre(o.nombre, cw * 1.05) * 1.15) + "px";
+      const nv = el("rvNivel"); nv.style.display = "none"; nv.className = "";
+      el("rvDatos").innerHTML = o.datos || "";
+      const bt = el("rvBoton"); bt.style.display = o.boton ? "inline-block" : "none"; if (o.boton) { bt.textContent = o.boton; }
+      r.classList.toggle("manual", !!o.boton);
+      const ch = el("rvChispas"); ch.innerHTML = "";
+      for (let i = 0; i < 34; i++) {
+        const s = document.createElement("i"), ang = Math.random() * 6.283, d = 90 + Math.random() * Math.min(innerWidth, innerHeight) * 0.5;
+        s.style.setProperty("--dx", Math.round(Math.cos(ang) * d) + "px"); s.style.setProperty("--dy", Math.round(Math.sin(ang) * d) + "px");
+        s.style.animationDelay = (0.15 + Math.random() * 0.35) + "s"; s.style.background = s.style.color = (i % 3 ? "#ffd23f" : "#8fdcff"); ch.appendChild(s);
+      }
+      revAct = o.alFin;
+      r.classList.remove("on", "off"); void r.offsetWidth; r.classList.add("on");
+      if (o.nivel) {                                  // el número del jugador sube contando
+        nv.style.display = "block"; nv.style.color = o.nivel >= 80 ? "#ffd700" : (o.nivel >= 74 ? "#e6e6e6" : "#e0955a"); nv.className = o.nivel >= 80 ? "oro" : "";
+        let k = 0; nv.textContent = 0; setTimeout(function () { const rel = setInterval(function () { k++; nv.textContent = k; if (k >= o.nivel) { clearInterval(rel); } }, 16); }, 450);
+      }
+      if (o.espera) { revTimer = setTimeout(revelaAvanzar, o.espera); }
+    }
+    function revelaAvanzar() {                         // se difumina y sigue (a la mitad aparece lo siguiente)
+      if (!revAct) { return; }
+      const f = revAct; revAct = null; clearTimeout(revTimer);
+      const r = el("revela"); r.classList.remove("on"); void r.offsetWidth; r.classList.add("off");
+      revTimer = setTimeout(f, 320);
+      revOcultar = setTimeout(function () { r.classList.remove("off"); }, 620);
+    }
+    function revelaToque() { if (!el("revela").classList.contains("manual")) { revelaAvanzar(); } }
+    function revelaOculta() { clearTimeout(revTimer); clearTimeout(revOcultar); revAct = null; const r = el("revela"); if (r) { r.classList.remove("on", "off"); } }
 
     function mostrarResultado(valor) {
       if (fase === 1 && valor === CARTA_ID) { if (window.Multi && Multi.activo) { Multi.reportarCarta(); } mostrarCarta(); return; }
-      el("pNivel").style.display = "none";
-      el("pEtiqueta").textContent = NOMBRE_FASE[fase - 1];
-      el("pNombre").innerHTML = banderaHTML(valor) + esc(valor);
-      el("pDatos").textContent = "";
-      const boton = el("pBoton");
+      const d = TT[ajustes.idioma], pal = PAL[(fase * 2 + 1) % 6];
+      if (window.Multi && Multi.activo) { Multi.reportar(valor); }
       if (fase < 4) {
-        boton.textContent = TT[ajustes.idioma].continuar;
-        boton.onclick = function () {
-          guardarElegido(valor);
-          fase = fase + 1;
-          el("presentacion").classList.remove("visible");
-          mostrarRuleta();
-        };
-      } else {
-        const j = disponibles().filter(function (x) { return x.equipo === sel.equipo && x.nombre === valor; })[0];
-        jugadorActual = j;
-        el("pEtiqueta").textContent = j.equipo + "  ·  " + POS[j.posicion];
-        const caja = el("pNivel");
-        caja.style.display = "block";
-        caja.style.color = j.nivel >= 80 ? "#ffd700" : (j.nivel >= 74 ? "#d9d9d9" : "#e0955a");
-        el("pDatos").innerHTML = "#" + j.dorsal + "  ·  " + edadTxt(j) + "  ·  " + banderaHTML(j.nacionalidad) + esc(j.nacionalidad);
-        let n = 0; caja.textContent = 0;
-        const reloj = setInterval(function () { n = n + 1; caja.textContent = n; if (n >= j.nivel) { clearInterval(reloj); } }, 15);
-        boton.textContent = TT[ajustes.idioma].sumar;
-        boton.onclick = function () {
+        const cod = BANDERAS[valor], esL = valor === LIGA_LEGENDARIOS;
+        const ico = fase === 3 ? (cod ? '<img src="img/flags/' + cod + '.svg" alt="">' : "🌍") : (esL ? "⭐" : (fase === 1 ? "🏆" : "🛡️"));
+        revelaMostrar({ etiq: NOMBRE_FASE[fase - 1], ico: ico, nombre: valor, pal: pal, espera: 1500,
+          alFin: function () { guardarElegido(valor); fase = fase + 1; mostrarRuleta(); } });
+        return;
+      }
+      const j = disponibles().filter(function (x) { return x.equipo === sel.equipo && x.nombre === valor; })[0];
+      jugadorActual = j;
+      const cod = BANDERAS[j.nacionalidad];
+      revelaMostrar({ etiq: j.equipo + "  ·  " + POS[j.posicion], ico: j.posicion === "ARQ" ? "🧤" : "⚽", nombre: j.nombre, pal: PAL[(j.nivel >= 80 ? 5 : (j.nivel >= 74 ? 1 : 2))], nivel: j.nivel,
+        datos: "#" + j.dorsal + "  ·  " + edadTxt(j) + "  ·  " + banderaHTML(j.nacionalidad) + esc(j.nacionalidad), boton: d.sumar,
+        alFin: function () {
           slots[slotActivo].jugador = jugadorActual; comodinPuesto = false;
           const _idx = slotActivo, _jug = jugadorActual;
-          slotActivo = null; fase = 0;
-          el("presentacion").classList.remove("visible");
+          slotActivo = null; fase = 0; pickRes = null; tokGiro++;
           el("zonaRuleta").style.display = "none";
           el("aviso").textContent = TT[ajustes.idioma].tocaPuesto;
           dibujarCancha();
           crecerJuego();
           if (window.Multi && Multi.activo) { Multi.alSumar(_idx, _jug); }
           else if (slots.every(function (s) { return s.jugador; })) { finalizarPartida(); }
-        };
-      }
-      if (window.Multi && Multi.activo) { Multi.reportar(valor); }
-      el("presentacion").classList.add("visible");
+        } });
     }
   </script>
 <script>
@@ -669,7 +730,7 @@ canvas.cvPatada.gl { z-index: -1; }
 const TT = {
   es: {
     cartaTrampa: "CARTA TRAMPA", aplicar: "Aplicar carta", leyenda: "Leyenda",
-    creaTitulo: "Creá tu jugador", saltar: "Saltear animación", borrarUsuario: "Borrar usuario", confirmarBorrar: "¿Borrar tu usuario y crear otro? Se pierde tu personaje (los records quedan).", dorsal: "Dorsal (1 a 99)", piel: "Color de piel", peinado: "Peinado", colorPelo: "Color de pelo", barba: "Barba", colorBarba: "Color de barba", camiseta: "Camiseta", guardarEntrar: "Guardar y entrar", giraArrastra: "Arrastrá para girar a tu jugador", nombreObligatorio: "Escribí tu nombre de usuario para continuar.",
+    creaTitulo: "Creá tu jugador", saltar: "Skip ⏭", borrarUsuario: "Borrar usuario", confirmarBorrar: "¿Borrar tu usuario y crear otro? Se pierde tu personaje (los records quedan).", dorsal: "Dorsal (1 a 99)", piel: "Color de piel", peinado: "Peinado", colorPelo: "Color de pelo", barba: "Barba", colorBarba: "Color de barba", camiseta: "Camiseta", guardarEntrar: "Guardar y entrar", giraArrastra: "Arrastrá para girar a tu jugador", nombreObligatorio: "Escribí tu nombre de usuario para continuar.",
     peinados: ["Afro", "Corto", "Con flequillo", "Mohicano", "Largo suelto", "Con colita", "Rulos", "Calvo", "Con jopo", "Con moño"], barbas: ["Sin barba", "Candado", "Perilla", "Bigote", "Barba corta", "Barba larga", "Patillas"], camisetas: ["Rayo", "Selva", "Noche", "Sol"],
     felicitaciones: "¡FELICITACIONES!", puntosTotales: "PUNTOS TOTALES", rankingBtn: "Ver ranking",
     unJugador: "UN JUGADOR", multijugador: "MULTIJUGADOR", opciones: "OPCIONES", records: "RECORDS", salir: "SALIR", miPerfil: "MI PERFIL", volver: "Volver", menuBtn: "Menú", reiniciar: "Reiniciar selección",
@@ -683,7 +744,7 @@ const TT = {
     pos: { ARQ: "Arquero", LD: "Lateral derecho", LI: "Lateral izquierdo", DFC: "Defensor central", MCD: "Medio defensivo", MC: "Mediocampista central", MCO: "Medio ofensivo", MD: "Mediocampista derecho", MI: "Mediocampista izquierdo", ED: "Extremo derecho", EI: "Extremo izquierdo", DC: "Delantero centro" } },
   en: {
     cartaTrampa: "TRAP CARD", aplicar: "Apply card", leyenda: "Legend",
-    creaTitulo: "Create your player", saltar: "Skip animation", borrarUsuario: "Delete user", confirmarBorrar: "Delete your user and create a new one? Your character will be lost (records stay).", dorsal: "Shirt number (1 to 99)", piel: "Skin tone", peinado: "Hairstyle", colorPelo: "Hair color", barba: "Beard", colorBarba: "Beard color", camiseta: "Jersey", guardarEntrar: "Save and enter", giraArrastra: "Drag to rotate your player", nombreObligatorio: "Type a username to continue.",
+    creaTitulo: "Create your player", saltar: "Skip ⏭", borrarUsuario: "Delete user", confirmarBorrar: "Delete your user and create a new one? Your character will be lost (records stay).", dorsal: "Shirt number (1 to 99)", piel: "Skin tone", peinado: "Hairstyle", colorPelo: "Hair color", barba: "Beard", colorBarba: "Beard color", camiseta: "Jersey", guardarEntrar: "Save and enter", giraArrastra: "Drag to rotate your player", nombreObligatorio: "Type a username to continue.",
     peinados: ["Afro", "Short", "Fringe", "Mohawk", "Long loose", "Ponytail", "Curls", "Bald", "Quiff", "Bun"], barbas: ["No beard", "Goatee", "Soul patch", "Moustache", "Short beard", "Long beard", "Sideburns"], camisetas: ["Bolt", "Jungle", "Night", "Sun"],
     felicitaciones: "CONGRATULATIONS!", puntosTotales: "TOTAL POINTS", rankingBtn: "View ranking",
     unJugador: "SINGLE PLAYER", multijugador: "MULTIPLAYER", opciones: "OPTIONS", records: "RECORDS", salir: "EXIT", miPerfil: "MY PROFILE", volver: "Back", menuBtn: "Menu", reiniciar: "Restart selection",
@@ -697,7 +758,7 @@ const TT = {
     pos: { ARQ: "Goalkeeper", LD: "Right back", LI: "Left back", DFC: "Centre back", MCD: "Defensive midfielder", MC: "Central midfielder", MCO: "Attacking midfielder", MD: "Right midfielder", MI: "Left midfielder", ED: "Right winger", EI: "Left winger", DC: "Striker" } },
   pt: {
     cartaTrampa: "CARTA ARMADILHA", aplicar: "Aplicar carta", leyenda: "Lenda",
-    creaTitulo: "Crie seu jogador", saltar: "Pular animação", borrarUsuario: "Apagar usuário", confirmarBorrar: "Apagar seu usuário e criar outro? Seu personagem será perdido (os recordes ficam).", dorsal: "Número (1 a 99)", piel: "Cor da pele", peinado: "Penteado", colorPelo: "Cor do cabelo", barba: "Barba", colorBarba: "Cor da barba", camiseta: "Camisa", guardarEntrar: "Salvar e entrar", giraArrastra: "Arraste para girar seu jogador", nombreObligatorio: "Digite seu nome de usuário para continuar.",
+    creaTitulo: "Crie seu jogador", saltar: "Skip ⏭", borrarUsuario: "Apagar usuário", confirmarBorrar: "Apagar seu usuário e criar outro? Seu personagem será perdido (os recordes ficam).", dorsal: "Número (1 a 99)", piel: "Cor da pele", peinado: "Penteado", colorPelo: "Cor do cabelo", barba: "Barba", colorBarba: "Cor da barba", camiseta: "Camisa", guardarEntrar: "Salvar e entrar", giraArrastra: "Arraste para girar seu jogador", nombreObligatorio: "Digite seu nome de usuário para continuar.",
     peinados: ["Afro", "Curto", "Com franja", "Moicano", "Longo solto", "Rabo de cavalo", "Cachos", "Careca", "Topete", "Coque"], barbas: ["Sem barba", "Cavanhaque", "Pera", "Bigode", "Barba curta", "Barba longa", "Costeletas"], camisetas: ["Raio", "Selva", "Noite", "Sol"],
     felicitaciones: "PARABÉNS!", puntosTotales: "PONTOS TOTAIS", rankingBtn: "Ver ranking",
     unJugador: "UM JOGADOR", multijugador: "MULTIJOGADOR", opciones: "OPÇÕES", records: "RECORDES", salir: "SAIR", miPerfil: "MEU PERFIL", volver: "Voltar", menuBtn: "Menu", reiniciar: "Reiniciar seleção",
@@ -711,7 +772,7 @@ const TT = {
     pos: { ARQ: "Goleiro", LD: "Lateral direito", LI: "Lateral esquerdo", DFC: "Zagueiro central", MCD: "Volante", MC: "Meio-campista central", MCO: "Meia ofensivo", MD: "Meio-campista direito", MI: "Meio-campista esquerdo", ED: "Ponta direito", EI: "Ponta esquerdo", DC: "Centroavante" } },
   it: {
     cartaTrampa: "CARTA TRAPPOLA", aplicar: "Applica carta", leyenda: "Leggenda",
-    creaTitulo: "Crea il tuo giocatore", saltar: "Salta animazione", borrarUsuario: "Elimina utente", confirmarBorrar: "Eliminare il tuo utente e crearne un altro? Il personaggio andrà perso (i record restano).", dorsal: "Numero (da 1 a 99)", piel: "Colore della pelle", peinado: "Taglio di capelli", colorPelo: "Colore dei capelli", barba: "Barba", colorBarba: "Colore della barba", camiseta: "Maglia", guardarEntrar: "Salva ed entra", giraArrastra: "Trascina per ruotare il tuo giocatore", nombreObligatorio: "Scrivi il tuo nome utente per continuare.",
+    creaTitulo: "Crea il tuo giocatore", saltar: "Skip ⏭", borrarUsuario: "Elimina utente", confirmarBorrar: "Eliminare il tuo utente e crearne un altro? Il personaggio andrà perso (i record restano).", dorsal: "Numero (da 1 a 99)", piel: "Colore della pelle", peinado: "Taglio di capelli", colorPelo: "Colore dei capelli", barba: "Barba", colorBarba: "Colore della barba", camiseta: "Maglia", guardarEntrar: "Salva ed entra", giraArrastra: "Trascina per ruotare il tuo giocatore", nombreObligatorio: "Scrivi il tuo nome utente per continuare.",
     peinados: ["Afro", "Corto", "Con frangia", "Mohicano", "Lungo sciolto", "Codino", "Ricci", "Calvo", "Ciuffo", "Chignon"], barbas: ["Senza barba", "Pizzetto", "Barbetta", "Baffi", "Barba corta", "Barba lunga", "Basette"], camisetas: ["Fulmine", "Giungla", "Notte", "Sole"],
     felicitaciones: "COMPLIMENTI!", puntosTotales: "PUNTI TOTALI", rankingBtn: "Vedi classifica",
     unJugador: "UN GIOCATORE", multijugador: "MULTIGIOCATORE", opciones: "OPZIONI", records: "RECORD", salir: "ESCI", miPerfil: "IL MIO PROFILO", volver: "Indietro", menuBtn: "Menu", reiniciar: "Riavvia selezione",
@@ -741,6 +802,7 @@ function ir(id) {
   if (id === "records") { dibujarRecords(); }
   if (id === "perfil") { abrirPerfil(); } else if (visorPerfil) { visorPerfil.detener(); }
   if (id === "opciones") { cargarOpciones(); }
+  if (id !== "pantallaJuego") { revelaOculta(); }
   if (id === "menu") { dibujarChip(); if (window.Multi) { Multi.invitacionPendiente(); } }
 }
 function entrarMenu() { if (perfil.creado) { ir("menu"); } else { ir("perfil"); } }   // la primera vez en cada aparato: crear el personaje
@@ -1067,7 +1129,7 @@ function guardarPerfil() {
   ir("menu");
 }
 function limpiarPartida() {
-  slots = []; slotActivo = null; fase = 0; sel = {}; girando = false; comodinPuesto = false;
+  slots = []; slotActivo = null; fase = 0; sel = {}; girando = false; comodinPuesto = false; pickRes = null; tokGiro++; revelaOculta();
   el("zonaRuleta").style.display = "none"; el("juego").style.display = "none"; el("inicio").style.display = "none";
   el("presentacion").classList.remove("visible"); el("aviso").textContent = L().tocaPuesto;
 }
@@ -1145,7 +1207,7 @@ function empezarDraft() {
 }
 function cancelarPuesto() {
   if (girando || fase > 1) { return; }
-  PT1.detener(); el("zonaRuleta").style.display = "none"; slotActivo = null; fase = 0; sel = {}; comodinPuesto = false; el("aviso").textContent = L().tocaPuesto; dibujarCancha();
+  PT1.detener(); el("zonaRuleta").style.display = "none"; slotActivo = null; fase = 0; sel = {}; comodinPuesto = false; pickRes = null; tokGiro++; el("aviso").textContent = L().tocaPuesto; dibujarCancha();
 }
 
 // ===== Tabla del draft (los 11 jugadores que se van eligiendo) =====
@@ -1197,7 +1259,12 @@ function dibujarRuleta() {
     return '<div class="cr" style="transform:rotateY(' + (i * paso) + "deg) translateZ(" + RR + "px);background:linear-gradient(160deg," + PAL[i % 6][0] + "," + PAL[i % 6][1] + ')"><span class="tp">' + esc(tipo) + '</span>' + adorno + '<span class="nm" style="font-size:' + fs + 'px">' + esc(txt) + "</span></div>";
   }).join("");
   angReel = 0; poner(0, 0);
-  el("escenaReel").classList.add("tenue"); PT1.reiniciar();
+  if (pickRes) { z.classList.add("auto"); el("escenaReel").classList.remove("tenue"); autoGiro(); }          // ya pateaste: las demás ruletas giran solas
+  else { z.classList.remove("auto"); el("escenaReel").classList.add("tenue"); PT1.reiniciar(); }
+}
+function autoGiro() {
+  const tok = ++tokGiro; girando = true; el("botonGirar").disabled = true;
+  setTimeout(function () { if (tok === tokGiro && girando && pickRes) { girar(0.05, pickRes); } }, 900);
 }
 function poner(a, v) {
   el("cil3d").style.transform = "translateZ(-" + RR + "px) rotateY(" + (-a) + "deg)";
@@ -1259,7 +1326,7 @@ function terminarGiro(ganador) {
 function crecerJuego() { const j = el("juego"); j.classList.remove("crece"); void j.offsetWidth; j.classList.add("crece"); }
 
 // ===== Patadas: una por ruleta de fases y otra para las formaciones =====
-const PT1 = PatadaAuto(el("cvPatada1"), el("botonGirar"), el("relleno1"), function (p, res) { el("escenaReel").classList.remove("tenue"); girar(p, res); }, function () { girando = true; }, el("zonaRuleta"));
+const PT1 = PatadaAuto(el("cvPatada1"), el("botonGirar"), el("relleno1"), function (p, res) { pickRes = res; el("escenaReel").classList.remove("tenue"); girar(p, res); }, function () { girando = true; }, el("zonaRuleta"));
 const PT2 = PatadaAuto(el("cvPatada2"), el("btnGirarForm"), el("relleno2"), function (p) { girarFormaciones(p); }, function () { girandoForm = true; }, el("selFormacion"));
 // ===== Arranque =====
 ajustarFondo(); iniciarFondo(); aplicarIdioma();
