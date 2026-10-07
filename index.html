@@ -265,7 +265,7 @@ canvas.cvPatada.gl { z-index: -1; }
   <div class="cab mini"><div class="t1">ROMMEE</div><div class="t2">FUTBOL DRAFT</div></div>
   <div class="botonera">
     <button class="gb" data-i="unJugador" onclick="irJuego()"></button>
-    <button class="gb" data-i="multijugador" onclick="ir('multi')"></button>
+    <button class="gb" data-i="multijugador" onclick="Multi.abrir()"></button>
     <button class="gb" data-i="opciones" onclick="ir('opciones')"></button>
     <button class="gb" data-i="records" onclick="ir('records')"></button>
     <button class="gb" data-i="salir" onclick="salir()"></button>
@@ -274,8 +274,20 @@ canvas.cvPatada.gl { z-index: -1; }
 
 <div id="multi" class="pant">
   <h2 data-i="multijugador"></h2>
-  <div class="panel" data-i="proximamente"></div>
-  <button onclick="ir('menu')" data-i="volver"></button>
+  <p id="msgMulti" style="color:#ffd23f;min-height:22px"></p>
+  <div id="mv-menu" class="mvista">
+    <button class="gb" data-i="crearSala" onclick="Multi.crear()"></button>
+    <button class="gb" data-i="unirseSala" onclick="Multi.verUnirse()"></button>
+    <button onclick="ir('menu')" data-i="volver"></button>
+  </div>
+  <div id="mv-unirse" class="mvista">
+    <div class="panel" style="text-align:center"><h3 data-i="ingresarCodigo"></h3>
+      <input type="text" id="inpCodigo" maxlength="5" autocomplete="off" autocapitalize="characters" style="text-align:center;letter-spacing:.3em;text-transform:uppercase;font-size:28px" onkeydown="if(event.key==='Enter')Multi.unirse()"></div>
+    <button class="gb" data-i="unirse" onclick="Multi.unirse()"></button>
+    <button onclick="Multi.abrir()" data-i="volver"></button>
+  </div>
+  <div id="mv-sala" class="mvista"></div>
+  <div id="mv-moneda" class="mvista"></div>
 </div>
 
 <div id="opciones" class="pant">
@@ -321,8 +333,8 @@ canvas.cvPatada.gl { z-index: -1; }
 
 <div id="pantallaJuego" class="pant">
   <div class="barra">
-    <button onclick="ir('menu')" data-i="menuBtn"></button>
-    <button onclick="reiniciarSeleccion()" data-i="reiniciar"></button>
+    <button id="btnMenuJuego" onclick="menuJuego()" data-i="menuBtn"></button>
+    <button id="btnReiniciar" onclick="reiniciarSeleccion()" data-i="reiniciar"></button>
   </div>
   <div id="inicio" style="display:none"><select id="selForm"></select></div>
 
@@ -383,6 +395,7 @@ canvas.cvPatada.gl { z-index: -1; }
 </div></div>
 
 <script>if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { navigator.serviceWorker.register("sw.js").catch(function () {}); }</script>
+<script src="datos/red.js"></script>
 <script src="datos/equipos.js"></script>
 <script src="datos/jugadores.js"></script>
 <script src="datos/legendarios.js"></script>
@@ -500,7 +513,9 @@ canvas.cvPatada.gl { z-index: -1; }
       dibujarTabla();
     }
 
+    function menuJuego() { if (window.Multi && Multi.activo) { Multi.salirBtn(); } else { ir("menu"); } }
     function elegirPuesto(i) {
+      if (window.Multi && Multi.activo && !Multi.miTurno()) { return; }       // en multijugador solo se juega en tu turno
       if (girando || fase > 1 || slots[i].jugador) { return; }   // una vez que giraste, terminá este jugador
       slotActivo = i; fase = 1; sel = {};
       el("aviso").textContent = TT[ajustes.idioma].puestoElegido + ": " + POS[slots[i].pos];
@@ -513,7 +528,7 @@ canvas.cvPatada.gl { z-index: -1; }
     function disponibles() {
       const pp = slots[slotActivo].pos;
       return JUGADORES.filter(function (j) {
-        return (comodinPuesto ? (pp === "ARQ" ? j.posicion === "ARQ" : j.posicion !== "ARQ") : j.posicion === pp) && !slots.some(function (s) { return s.jugador && s.jugador.nombre === j.nombre && s.jugador.equipo === j.equipo; });
+        return (comodinPuesto ? (pp === "ARQ" ? j.posicion === "ARQ" : j.posicion !== "ARQ") : j.posicion === pp) && !(window.Multi && Multi.activo && Multi.usado(j)) && !slots.some(function (s) { return s.jugador && s.jugador.nombre === j.nombre && s.jugador.equipo === j.equipo; });
       });
     }
 
@@ -562,6 +577,7 @@ canvas.cvPatada.gl { z-index: -1; }
       el("titulo").textContent = TT[ajustes.idioma].fase + " " + fase + ": " + NOMBRE_FASE[fase - 1];
       el("botonGirar").disabled = false;
       dibujarRuleta();
+      if (window.Multi && Multi.activo) { Multi.reportar(); }
     }
 
     // ----- Cartas trampa -----
@@ -586,6 +602,7 @@ canvas.cvPatada.gl { z-index: -1; }
       el("presentacion").classList.add("visible");
     }
     function quitarJugador(i) {        // el jugador se va y se vuelve a sortear ese puesto
+      if (window.Multi && Multi.activo) { Multi.alQuitar(i); }
       slots[i].jugador = null; slotActivo = i; fase = 1; sel = {}; comodinPuesto = false;
       dibujarCancha(); mostrarRuleta();
     }
@@ -604,7 +621,7 @@ canvas.cvPatada.gl { z-index: -1; }
     }
 
     function mostrarResultado(valor) {
-      if (fase === 1 && valor === CARTA_ID) { mostrarCarta(); return; }
+      if (fase === 1 && valor === CARTA_ID) { if (window.Multi && Multi.activo) { Multi.reportarCarta(); } mostrarCarta(); return; }
       el("pNivel").style.display = "none";
       el("pEtiqueta").textContent = NOMBRE_FASE[fase - 1];
       el("pNombre").innerHTML = banderaHTML(valor) + esc(valor);
@@ -631,15 +648,18 @@ canvas.cvPatada.gl { z-index: -1; }
         boton.textContent = TT[ajustes.idioma].sumar;
         boton.onclick = function () {
           slots[slotActivo].jugador = jugadorActual; comodinPuesto = false;
+          const _idx = slotActivo, _jug = jugadorActual;
           slotActivo = null; fase = 0;
           el("presentacion").classList.remove("visible");
           el("zonaRuleta").style.display = "none";
           el("aviso").textContent = TT[ajustes.idioma].tocaPuesto;
           dibujarCancha();
           crecerJuego();
-          if (slots.every(function (s) { return s.jugador; })) { finalizarPartida(); }
+          if (window.Multi && Multi.activo) { Multi.alSumar(_idx, _jug); }
+          else if (slots.every(function (s) { return s.jugador; })) { finalizarPartida(); }
         };
       }
+      if (window.Multi && Multi.activo) { Multi.reportar(valor); }
       el("presentacion").classList.add("visible");
     }
   </script>
@@ -1243,5 +1263,6 @@ const PT2 = PatadaAuto(el("cvPatada2"), el("btnGirarForm"), el("relleno2"), func
 // ===== Arranque =====
 ajustarFondo(); iniciarFondo(); aplicarIdioma();
 </script>
+<script src="datos/multi.js"></script>
 </body>
 </html>
