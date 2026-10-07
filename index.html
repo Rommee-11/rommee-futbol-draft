@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROMMEE FUTBOL DRAFT</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #0b6623; color: #fff; text-align: center; margin: 0; padding: 12px; }
+  button, select { font-size: 18px; padding: 11px 28px; border: none; border-radius: 12px; background: #ffd700; cursor: pointer; }
+  button:disabled { background: #999; cursor: not-allowed; }
+  #juego { display: none; flex-wrap: wrap; justify-content: center; gap: 20px; }
+  #cancha { position: relative; width: min(92vw, 330px); height: min(125vw, 450px); border: 3px solid #fff; border-radius: 8px;
+            background: repeating-linear-gradient(#2e8b3a 0 12.5%, #2a7f35 12.5% 25%); }
+  .puesto { position: absolute; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; box-sizing: border-box;
+            background: rgba(255,255,255,.25); border: 2px dashed #fff; font-size: 11px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer; line-height: 1.1; }
+  .puesto b { font-size: 15px; }
+  .puesto.activo { background: #ffd700; color: #222; border-style: solid; }
+  .puesto.lleno { background: #102a14; border-style: solid; cursor: default; }
+  #zonaRuleta { display: none; width: min(92vw, 360px); }
+  #marco { position: relative; width: min(86vw, 330px); margin: 22px auto 14px auto; }
+  #marco:before { content: ""; position: absolute; top: -14px; left: 50%; margin-left: -14px; z-index: 2;
+                  border: 14px solid transparent; border-top: 26px solid #fff; }
+  #ruleta { width: 100%; border-radius: 50%; box-shadow: 0 0 0 6px #fff; }
+  #presentacion { position: fixed; inset: 0; background: rgba(0,0,0,.92); display: none; flex-direction: column;
+                  align-items: center; justify-content: center; z-index: 10; animation: aparecer .4s; }
+  #presentacion.visible { display: flex; }
+  #pEtiqueta { font-size: 20px; opacity: .8; animation: subir .5s; }
+  #pNivel { font-size: 120px; font-weight: bold; line-height: 1; animation: pop .7s; }
+  #pNombre { font-size: 40px; font-weight: bold; margin: 12px 20px 6px 20px; animation: subir .8s; }
+  #pDatos { font-size: 16px; opacity: .85; margin-bottom: 26px; animation: subir 1.1s; }
+  @keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pop { 0% { transform: scale(.2); opacity: 0; } 70% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes subir { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ===== Pantallas nuevas: intro, menú, opciones, records, perfil ===== */
+body { background: #031a2e; color: #fff; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+#fondo { position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: -1; }
+.pant { display: none; min-height: 100vh; padding: 14px; box-sizing: border-box; text-align: center; position: relative; }
+.pant.activa { display: block; }
+.panel { background: rgba(2,22,44,.78); border: 2px solid rgba(143,220,255,.35); border-radius: 18px; padding: 16px; max-width: 560px; margin: 12px auto; text-align: left; }
+.panel h3, .panel h4 { margin: 14px 0 8px 0; color: #8fdcff; }
+.panel label { display: block; margin: 8px 0; }
+input[type=text] { font-size: 18px; padding: 8px; border-radius: 8px; border: none; width: 90%; }
+.barra { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+
+/* Logo en 3D */
+#intro { cursor: pointer; }
+.escena { height: 100vh; display: flex; align-items: center; justify-content: center; perspective: 900px; overflow: hidden; }
+.logo { text-align: center; animation: logoAnim 5.6s ease-in-out forwards; }
+.t1, .t2 { font-family: Impact, "Arial Black", sans-serif; font-weight: 900; margin: 0; background: linear-gradient(#fff 0%, #b5ecff 30%, #4cb9f0 70%, #2486c9 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 2px #0a2a5e;
+  filter: drop-shadow(1px 1px 0 #0a2a5e) drop-shadow(2px 2px 0 #0a2a5e) drop-shadow(3px 3px 0 #0a2a5e) drop-shadow(4px 4px 0 #0a2a5e) drop-shadow(5px 5px 0 #0a2a5e) drop-shadow(0 12px 14px rgba(0,0,0,.6)); }
+.t1 { font-size: clamp(56px, 19vw, 170px); letter-spacing: .04em; line-height: 1; }
+.t2 { font-size: clamp(24px, 7.5vw, 64px); letter-spacing: .12em; margin-top: 6px; }
+.mini .t1 { font-size: clamp(40px, 11vw, 86px); }
+.mini .t2 { font-size: clamp(16px, 4.2vw, 34px); }
+@keyframes logoAnim {
+  0% { transform: translateZ(-900px) scale(.3) rotateX(18deg); opacity: 0; filter: blur(14px); }
+  30% { transform: none; opacity: 1; filter: blur(0); }
+  55% { transform: none; opacity: 1; filter: blur(0); }
+  100% { transform: translateZ(-1100px) scale(.2); opacity: 0; filter: blur(18px); }
+}
+
+/* Menú */
+#menu .cab { padding-top: 34px; animation: entra 1.2s; }
+.botonera { margin-top: 26px; animation: entra 1.6s; }
+@keyframes entra { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+.gb { display: block; width: min(88vw, 420px); margin: 12px auto; padding: 18px 10px; font-size: clamp(20px, 5.5vw, 28px); font-weight: bold; letter-spacing: .06em; color: #fff;
+  background: linear-gradient(#45bff7, #1769b9); border: 3px solid #fff; border-radius: 18px; box-shadow: 0 6px 0 #0a2a5e, 0 12px 20px rgba(0,0,0,.45); text-shadow: 0 2px 0 #0a2a5e; cursor: pointer; transition: transform .12s, filter .12s; }
+.gb:hover { filter: brightness(1.15); transform: scale(1.03); }
+.gb:active { transform: translateY(4px); box-shadow: 0 2px 0 #0a2a5e; }
+#chip { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 8px; background: rgba(2,22,44,.8); color: #fff; border: 2px solid #8fdcff; border-radius: 30px; padding: 4px 14px 4px 6px; cursor: pointer; font-size: 16px; }
+#chip .av { width: 40px; height: 48px; }
+
+/* Avatares animados */
+.av { display: block; }
+.av .bob { animation: bob 2.2s ease-in-out infinite; }
+.av .ojos { animation: blink 4s infinite; transform-box: fill-box; transform-origin: center; }
+.av .pelo { animation: sway 3s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 0; }
+@keyframes bob { 50% { transform: translateY(3px); } }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes sway { 50% { transform: rotate(2deg); } }
+#creador { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; align-items: flex-start; max-width: 1100px; margin: 0 auto; }
+#visorCreador .pie { margin: 6px 0 0; display: flex; flex-direction: column; gap: 6px; }
+#visorCreador .pie button { width: 100%; box-sizing: border-box; font-size: 18px; letter-spacing: 1px; padding: 10px 8px; margin: 0; }
+#visorCreador .pie button.peligro { background: #b3261e; color: #fff; font-size: 15px; }
+#visorCreador { flex: 0 0 auto; width: min(92vw, 340px); position: sticky; top: 8px; }
+#cvCreador { width: 100%; height: min(56vh, 440px); display: block; border-radius: 18px; background: radial-gradient(circle at 50% 35%, #1b5fa8, #08213f 75%); border: 2px solid rgba(143,220,255,.5); touch-action: pan-y; cursor: grab; }
+#visor2d { display: none; }
+#visor2d svg { width: 100%; height: min(56vh, 440px); border-radius: 18px; background: radial-gradient(circle at 50% 35%, #1b5fa8, #08213f 75%); border: 2px solid rgba(143,220,255,.5); }
+.ayudaV { font-size: 13px; opacity: .8; margin: 6px 0 0; }
+#opcionesCreador { flex: 1 1 360px; max-width: 620px; margin: 0; }
+#opcionesCreador h4 { margin: 14px 0 6px; }
+#opcionesCreador input[type=text], #opcionesCreador input[type=number] { width: 100%; box-sizing: border-box; }
+.fila { display: flex; flex-wrap: wrap; gap: 7px; }
+.sw { width: 38px; height: 38px; border-radius: 50%; border: 3px solid rgba(255,255,255,.55); padding: 0; cursor: pointer; }
+.sw.sel, .ob.sel, .kit.sel { border-color: #ffd700; box-shadow: 0 0 0 3px rgba(255,215,0,.45); }
+.ob { font-size: 14px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.14); color: #fff; border: 3px solid transparent; }
+.kit { width: 92px; padding: 5px; border-radius: 12px; background: rgba(255,255,255,.1); color: #fff; border: 3px solid transparent; font-size: 13px; text-align: center; }
+.kit canvas { width: 100%; height: 56px; border-radius: 8px; display: block; margin-bottom: 4px; }
+#perfil .pie { margin: 12px 0 4px; }
+#chip .fotoChip { width: 40px; height: 48px; object-fit: cover; border-radius: 10px; background: #0b3a6e; }
+#listaAvatares { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+#listaAvatares h4 { width: 100%; margin: 6px 0 0 0; text-align: center; }
+.avc { width: 96px; padding: 6px; border: 3px solid transparent; border-radius: 14px; background: rgba(255,255,255,.08); cursor: pointer; text-align: center; font-size: 13px; }
+.avc.sel { border-color: #ffd700; background: rgba(255,215,0,.18); }
+.avc .av { width: 84px; height: 100px; margin: 0 auto; }
+
+/* Records y ventana de fin */
+details { margin: 6px 0; background: rgba(255,255,255,.07); border-radius: 10px; padding: 8px; }
+summary { cursor: pointer; }
+.modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.82); display: none; align-items: center; justify-content: center; z-index: 20; padding: 14px; }
+.modal.visible { display: flex; }
+.modal .panel { text-align: center; }
+#fin { padding: 0; background: radial-gradient(ellipse at 50% 30%, #3a2a6a, #0b0a1e 75%); }
+#fin .finPanel { background: none; border: 0; box-shadow: none; max-width: none; position: relative; z-index: 2; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 14px; pointer-events: none; }
+#fin .finPanel button { pointer-events: auto; }
+#cvFiesta { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+#finTitulo { margin: 4px 0 0; font-size: clamp(26px, 6vw, 56px); color: #ffd84a; text-shadow: 0 3px 0 #a56a00, 0 0 24px rgba(255,200,60,.7); letter-spacing: 2px; }
+.finEtq { color: #fff; font-size: clamp(13px, 2.4vw, 20px); letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 2px 6px #000; }
+#finPuntos { font-size: clamp(48px, 10vw, 96px); font-weight: 900; line-height: 1; color: #fff; text-shadow: 0 4px 0 #1a7a2e, 0 0 30px rgba(120,255,150,.8); }
+#fin h3 { margin: 4px 0; color: #fff; text-shadow: 0 2px 6px #000; font-size: clamp(14px, 2.6vw, 22px); }
+#fin .finBtns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; padding-bottom: 6px; }
+
+/* La cancha y las ruletas se leen mejor con un panel oscuro detrás */
+#pantallaJuego #inicio, #pantallaJuego #juego { background: rgba(2,22,44,.55); border-radius: 18px; padding: 12px; max-width: 900px; margin: 0 auto; }
+
+/* ===== Estadio: selector 3D, pantalla dividida y tabla ===== */
+#presentacion { z-index: 25; }
+#zonaRuleta { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: auto; z-index: 15; background: rgba(0,10,25,.84); overflow: auto; padding: 4vh 14px 14px; box-sizing: border-box; text-align: center; }
+#zonaRuleta .panelRuleta { max-width: 420px; margin: 0 auto; }
+#cerrarRuleta { position: absolute; top: 10px; right: 12px; padding: 6px 14px; font-size: 20px; }
+#juego { flex-wrap: wrap; gap: 16px; justify-content: center; align-items: flex-start; max-width: 1150px; margin: 0 auto; }
+#cancha { box-shadow: 0 0 40px rgba(60,200,120,.45), 0 0 0 4px #fff3; }
+#total { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; }
+#hint { font-size: 14px; opacity: .85; margin: 8px 0 0 0; max-width: 330px; }
+.colTabla { flex: 1 1 440px; min-width: 300px; max-width: 640px; text-align: left; }
+#tablaDraft { background: linear-gradient(160deg, rgba(6,28,58,.93), rgba(3,14,30,.93)); border: 2px solid #8fdcff; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.55), 0 0 0 4px rgba(10,42,94,.8); overflow: hidden; overflow-x: auto; }
+.tdTit { padding: 12px 16px; font: 900 22px Impact, "Arial Black", sans-serif; letter-spacing: .14em; color: #fff; background: linear-gradient(90deg, #0a2a5e, #1769b9 60%, #0a2a5e); border-bottom: 3px solid #ffd700; text-shadow: 0 2px 0 #031a3a; }
+table.td { width: 100%; border-collapse: collapse; font-size: 14px; }
+.td th { padding: 8px 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #8fdcff; background: rgba(0,0,0,.35); text-align: left; }
+.td td { padding: 7px 6px; border-bottom: 1px solid rgba(143,220,255,.12); white-space: nowrap; }
+.td tr.lleno:nth-child(odd) { background: rgba(143,220,255,.07); }
+.td tr.vacio td { color: rgba(255,255,255,.35); font-style: italic; }
+.td tr.act td { background: rgba(255,215,0,.2); color: #fff; }
+.td td.nom { font-weight: bold; color: #fff; }
+.td tfoot td { padding: 10px 8px; font-weight: bold; font-size: 16px; background: linear-gradient(90deg, #0a2a5e, #1769b9); color: #fff; text-align: right; }
+.ins { display: inline-block; min-width: 34px; text-align: center; padding: 3px 7px; border-radius: 8px; font-weight: bold; color: #222; }
+.ins.oro { background: linear-gradient(#ffe680, #ffd700); }
+.ins.plata { background: linear-gradient(#f4f4f4, #c9c9c9); }
+.ins.bronce { background: linear-gradient(#f0b27a, #cd7f32); }
+/* Selector de formación en 3D */
+#selFormacion { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: radial-gradient(circle, rgba(3,26,46,.86), rgba(0,0,0,.95)); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 10px; box-sizing: border-box; }
+#selFormacion.visible { display: flex; }
+.escena3d { width: min(96vw, 900px); height: min(46vh, 310px); perspective: 1100px; display: flex; align-items: center; justify-content: center; }
+#cilindro { position: relative; width: 170px; height: 240px; transform-style: preserve-3d; }
+.carta3d { position: absolute; left: 0; top: 0; width: 170px; height: 240px; border-radius: 14px; background: linear-gradient(#0e3a2a, #0a2a1e); border: 3px solid #8fdcff; box-shadow: 0 0 18px rgba(143,220,255,.5); backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; padding: 6px; box-sizing: border-box; }
+.carta3d svg { width: 100%; height: 190px; }
+.carta3d b { font-size: 24px; color: #fff; letter-spacing: .05em; }
+#formNombre { font: 900 clamp(36px, 9vw, 60px) Impact, "Arial Black", sans-serif; color: #8fdcff; text-shadow: 0 4px 0 #0a2a5e; min-height: 1.1em; }
+/* ===== Ruleta 3D en primer plano y pantalla del draft más grande ===== */
+#zonaRuleta { --v: 0; --giro: 0deg; --cw: 260px; --chh: 360px; background: radial-gradient(circle at 50% 42%, rgba(12,70,46,.94), rgba(0,10,20,.97) 70%); animation: aparecer .5s; transition: opacity .8s; opacity: 1; padding-top: 5vh; }
+#zonaRuleta.sale { opacity: 0; pointer-events: none; }
+#zonaRuleta::before { content: ""; position: absolute; left: 50%; top: 46%; width: 78vmin; height: 78vmin; margin: -39vmin 0 0 -39vmin; border: 6px solid rgba(255,255,255,.10); border-radius: 50%; pointer-events: none; }
+#zonaRuleta .panelRuleta { max-width: 1200px; position: relative; }
+#balonFondo { position: absolute; left: 50%; top: 46%; font-size: 70vmin; line-height: 1; opacity: .07; transform: translate(-50%, -50%) rotate(var(--giro)); pointer-events: none; }
+#estelas { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; opacity: var(--v); mix-blend-mode: screen;
+  background: repeating-linear-gradient(90deg, transparent 0 36px, rgba(255,255,255,.10) 36px 40px, transparent 40px 96px), radial-gradient(circle at 50% 46%, transparent 20%, rgba(255,215,0,.16) 100%); }
+#titulo { font: 900 clamp(26px, 5vw, 52px) "Palatino Linotype", "Book Antiqua", Georgia, serif; letter-spacing: .12em; text-transform: uppercase; margin: 4px 0 10px; color: #f3d27a; text-shadow: 0 4px 0 #3b2a00, 0 0 24px rgba(255,215,0,.35); }
+#aviso { font-size: clamp(13px, 2vw, 18px); opacity: .9; margin: 0; }
+#escenaReel { position: relative; width: min(98vw, 1100px); height: calc(var(--chh) * 1.22); margin: 0 auto 8px; perspective: 1500px; perspective-origin: 50% 45%; }
+#cil3d { position: absolute; left: 50%; top: 50%; width: var(--cw); height: var(--chh); margin-left: calc(var(--cw) / -2); margin-top: calc(var(--chh) / -2); transform-style: preserve-3d; }
+.cr { position: absolute; left: 0; top: 0; width: var(--cw); height: var(--chh); border-radius: 20px; border: 4px solid #f3d27a; box-sizing: border-box; overflow: hidden; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4%; text-align: center; padding: 10px;
+  filter: blur(calc(var(--v) * 4px)) brightness(calc(1 + var(--v) * .35)); box-shadow: 0 0 calc(12px + var(--v) * 50px) rgba(255,215,0,calc(.2 + var(--v) * .6)); }
+.cr::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 14%, transparent 14% 28%); }
+.cr .tp { position: relative; font: 700 calc(var(--cw) * .06) "Palatino Linotype", Georgia, serif; letter-spacing: .28em; white-space: nowrap; color: #f3d27a; text-transform: uppercase; }
+.cr .bl { position: relative; font-size: calc(var(--cw) * .3); line-height: 1; filter: drop-shadow(0 6px 4px rgba(0,0,0,.5)); }
+.cr .nm { position: relative; font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; line-height: 1.1; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.5); word-break: keep-all; overflow-wrap: normal; hyphens: none; max-width: 100%; }
+.cr .fl { position: relative; width: 62%; aspect-ratio: 4 / 3; border-radius: 6px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.85); }
+.cr .fl img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.bnd { height: 1em; width: 1.33em; vertical-align: -.12em; margin-right: .35em; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.5); }
+.cr.gan { animation: pulso .45s ease-in-out infinite alternate; filter: none; }
+@keyframes pulso { from { box-shadow: 0 0 30px rgba(255,215,0,.6); } to { box-shadow: 0 0 90px rgba(255,235,120,1); } }
+#ventanaReel { position: absolute; left: 50%; top: 50%; width: calc(var(--cw) + 34px); height: calc(var(--chh) + 34px); margin-left: calc((var(--cw) + 34px) / -2); margin-top: calc((var(--chh) + 34px) / -2); border: 5px solid #ffd700; border-radius: 28px; pointer-events: none; box-shadow: 0 0 40px rgba(255,215,0,.45), inset 0 0 30px rgba(255,215,0,.25); }
+#botonGirar { font: 900 clamp(20px, 3vw, 30px) "Palatino Linotype", Georgia, serif; letter-spacing: .14em; padding: 14px 64px; border-radius: 40px; background: linear-gradient(#ffe680, #ffd700); border: 3px solid #fff; box-shadow: 0 6px 0 #8a6a00, 0 10px 24px rgba(0,0,0,.5); }
+#botonGirar:disabled { background: #888; box-shadow: 0 4px 0 #444; }
+#juego.crece { animation: crece 1s cubic-bezier(.2,.8,.2,1); }
+@keyframes crece { 0% { transform: scale(.8); opacity: .35; filter: blur(4px); } 100% { transform: scale(1); opacity: 1; filter: none; } }
+#cancha { width: min(94vw, calc(min(82vh, 780px) * .74)); height: auto; aspect-ratio: 37 / 50; border: 0; border-radius: 14px; background: #07120b; overflow: visible; box-shadow: 0 0 40px rgba(60,200,120,.35), 0 10px 30px rgba(0,0,0,.6); }
+#cancha > svg.estadio { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 14px; display: block; }
+#cancha .campo { position: absolute; left: 14.05%; top: 11%; width: 71.9%; height: 78%; }
+#cancha .puesto { position: absolute; transform: translate(-50%, -50%); width: 21%; height: auto; aspect-ratio: 1 / 1; border: 0; border-radius: 0; background: none; padding: 0; display: block; cursor: pointer; font-size: clamp(9px, 1.25vw, 15px); }
+#cancha .puesto svg.cam { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 4px 3px rgba(0,0,0,.55)); transition: transform .15s; }
+#cancha .puesto:hover svg.cam { transform: scale(1.1); }
+#cancha .puesto.lleno { cursor: default; }
+#cancha .puesto.lleno:hover svg.cam { transform: none; }
+#cancha .puesto.activo svg.cam { animation: latir .7s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px #ffd700) drop-shadow(0 0 4px #fff); }
+@keyframes latir { from { transform: scale(1); } to { transform: scale(1.13); } }
+#cancha .puesto .eti { position: absolute; left: 50%; top: 100%; transform: translate(-50%, -4%); white-space: nowrap; background: rgba(0,0,0,.72); color: #fff; font-weight: bold; padding: .1em .55em; border-radius: 1em; font-size: 1.05em; letter-spacing: .02em; pointer-events: none; }
+.colCancha { flex: 0 0 auto; }
+.colTabla { flex: 1 1 520px; max-width: 780px; }
+.td { font-size: clamp(14px, 1.45vw, 18px); }
+.tdTit { font-size: clamp(20px, 2.4vw, 32px); }
+.td th { font-size: clamp(11px, 1.1vw, 14px); }
+/* ===== Patada y barra de fuerza ===== */
+.cvPatada { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 6; pointer-events: none; }
+.ayudaP { font-size: clamp(12px, 1.8vw, 16px); opacity: .85; margin: 6px 0 2px; }
+.barraF { position: relative; width: min(80vw, 460px); height: 24px; margin: 6px auto 12px; border: 3px solid #fff; border-radius: 14px; background: rgba(0,0,0,.6); overflow: hidden; box-shadow: 0 0 14px rgba(0,0,0,.6); }
+.relleno { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: linear-gradient(90deg, #e63946 0%, #f77f00 25%, #ffd23f 50%, #9bd93c 75%, #2ecc71 100%); clip-path: inset(0 100% 0 0); }
+#botonGirar, #btnGirarForm { touch-action: none; user-select: none; -webkit-user-select: none; }
+#escenaReel { transition: opacity .6s; }
+#escenaReel.tenue { opacity: .35; }
+/* ===== Escena de penal 3D: el lienzo va detrás de todo y la ruleta aparece cuando llega la pelota ===== */
+#zonaRuleta, #selFormacion { isolation: isolate; }
+canvas.cvPatada.gl { z-index: -1; }
+#zonaRuleta.penal.pre #escenaReel { opacity: 0; }
+#zonaRuleta.penal.pre #balonFondo, #zonaRuleta.penal.pre #estelas { display: none; }
+#zonaRuleta.penal { background: none; }
+#zonaRuleta.penal.pre::before { display: none; }
+#zonaRuleta.penal:not(.pre) { background: radial-gradient(circle at 50% 42%, rgba(12,70,46,.94), rgba(0,10,20,.97) 70%); }
+#selFormacion.penal.pre .escena3d, #selFormacion.penal.pre #formNombre, #selFormacion.penal.pre [onclick^="pasoForm"], #selFormacion.penal.pre [onclick^="empezarDraft"] { visibility: hidden; }
+#selFormacion.penal.pre { background: none; }
+#selFormacion.penal.pre .escena3d { flex: 1 1 auto; height: auto; }
+.btnSaltar { display: none; position: fixed; right: 14px; bottom: 14px; z-index: 6; padding: 9px 16px; border-radius: 22px; border: 2px solid rgba(255,255,255,.7); background: rgba(10,20,40,.72); color: #fff; font-size: 14px; letter-spacing: .5px; cursor: pointer; }
+.btnSaltar:hover { background: rgba(30,60,110,.9); }
+.penal.pre > .btnSaltar { display: block; }
+#btnEmpezar:disabled { opacity: .35; filter: grayscale(.6); cursor: not-allowed; }
+#selFormacion .escena3d, #selFormacion #formNombre { transition: opacity .6s; }
+.panelRuleta { z-index: 2; }
+#zonaRuleta.penal .panelRuleta { display: flex; flex-direction: column; align-items: center; height: 94vh; box-sizing: border-box; padding-bottom: 8px; }
+#zonaRuleta.penal #escenaReel { flex: 1 1 auto; height: auto; min-height: calc(var(--chh) * 1.1); width: min(98vw, 1100px); margin: 0 auto 4px; }
+#zonaRuleta.penal .panelRuleta > * { flex: 0 0 auto; } #zonaRuleta.penal .panelRuleta > #escenaReel { flex: 1 1 auto; }
+#zonaRuleta.penal.pre #aviso, #zonaRuleta.penal.pre .ayudaP, #selFormacion.penal.pre .ayudaP { text-shadow: 0 2px 4px #000, 0 0 10px #000; font-weight: bold; }
+#zonaRuleta.penal.pre #titulo { text-shadow: 0 4px 0 #3b2a00, 0 0 18px #000; }
+#presentacion { z-index: 40; }
+.flashPenal { position: fixed; left: 50%; top: 44%; width: 42vmin; height: 42vmin; margin: -21vmin 0 0 -21vmin; border-radius: 50%; pointer-events: none; z-index: 5; background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,235,140,.6) 45%, rgba(255,215,0,0) 70%); animation: destello .85s ease-out forwards; }
+@keyframes destello { from { transform: scale(.4); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b2a4a">
+<link rel="apple-touch-icon" href="icono-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+<canvas id="fondo"></canvas>
+
+<div id="intro" class="pant activa" onclick="saltarIntro()">
+  <div class="escena"><div class="logo"><div class="t1">ROMMEE</div><div class="t2">FUTBOL DRAFT</div></div></div>
+</div>
+
+<div id="menu" class="pant">
+  <div id="chip" onclick="ir('perfil')"></div>
+  <div class="cab mini"><div class="t1">ROMMEE</div><div class="t2">FUTBOL DRAFT</div></div>
+  <div class="botonera">
+    <button class="gb" data-i="unJugador" onclick="irJuego()"></button>
+    <button class="gb" data-i="multijugador" onclick="ir('multi')"></button>
+    <button class="gb" data-i="opciones" onclick="ir('opciones')"></button>
+    <button class="gb" data-i="records" onclick="ir('records')"></button>
+    <button class="gb" data-i="salir" onclick="salir()"></button>
+  </div>
+</div>
+
+<div id="multi" class="pant">
+  <h2 data-i="multijugador"></h2>
+  <div class="panel" data-i="proximamente"></div>
+  <button onclick="ir('menu')" data-i="volver"></button>
+</div>
+
+<div id="opciones" class="pant">
+  <h2 data-i="opciones"></h2>
+  <div class="panel">
+    <h3 data-i="video"></h3>
+    <label><input type="checkbox" id="optFondo" onchange="guardarAjustes()"> <span data-i="fondoAnimado"></span></label>
+    <small data-i="videoProx"></small>
+    <h3 data-i="audio"></h3>
+    <label><span data-i="musica"></span><br><input type="range" id="optMusica" min="0" max="100" onchange="guardarAjustes()"></label>
+    <label><span data-i="efectos"></span><br><input type="range" id="optEfectos" min="0" max="100" onchange="guardarAjustes()"></label>
+    <small data-i="audioProx"></small>
+    <h3 data-i="idioma"></h3>
+    <select id="optIdioma" onchange="cambiarIdioma(this.value)">
+      <option value="es">Español</option><option value="en">English</option><option value="pt">Português</option><option value="it">Italiano</option>
+    </select>
+  </div>
+  <button onclick="ir('menu')" data-i="volver"></button>
+</div>
+
+<div id="records" class="pant">
+  <h2 data-i="records"></h2>
+  <div class="panel" id="tablaRecords"></div>
+  <button onclick="ir('menu')" data-i="volver"></button>
+</div>
+
+<div id="perfil" class="pant">
+  <h2 id="tituloPerfil" data-i="miPerfil"></h2>
+  <div id="creador">
+    <div id="visorCreador">
+      <canvas id="cvCreador"></canvas><div id="visor2d"></div>
+      <p class="ayudaV" data-i="giraArrastra"></p>
+      <p class="pie">
+        <button id="btnGuardarPerfil" class="gb" onclick="guardarPerfil()" data-i="guardarEntrar"></button>
+        <button id="btnVolverPerfil" onclick="salirPerfil()" data-i="volver"></button>
+        <button id="btnBorrarPerfil" class="peligro" onclick="borrarUsuario()" data-i="borrarUsuario"></button>
+      </p>
+      <p id="msgPerfil"></p>
+    </div>
+    <div class="panel" id="opcionesCreador"></div>
+  </div>
+</div>
+
+<div id="pantallaJuego" class="pant">
+  <div class="barra">
+    <button onclick="ir('menu')" data-i="menuBtn"></button>
+    <button onclick="reiniciarSeleccion()" data-i="reiniciar"></button>
+  </div>
+  <div id="inicio" style="display:none"><select id="selForm"></select></div>
+
+  <div id="juego">
+    <div class="colCancha">
+      <p id="total"></p>
+      <div id="cancha"></div>
+      <p id="hint" data-i="tocaPuesto"></p>
+    </div>
+    <div class="colTabla"><div id="tablaDraft"></div></div>
+  </div>
+
+  <div id="zonaRuleta">
+    <canvas id="cvPatada1" class="cvPatada"></canvas>
+    <div id="balonFondo">⚽</div><div id="estelas"></div>
+    <button id="cerrarRuleta" onclick="cancelarPuesto()">✕</button>
+    <div class="panelRuleta">
+      <p id="aviso"></p>
+      <h3 id="titulo"></h3>
+      <div id="escenaReel"><div id="cil3d"></div><div id="ventanaReel"></div></div>
+      <div class="ayudaP" data-i="ayudaPatada"></div>
+      <div id="barraFuerza1" class="barraF"><div id="relleno1" class="relleno"></div></div>
+      <button id="botonGirar" data-i="girar"></button>
+    </div>
+  </div>
+
+  <div id="presentacion">
+    <div id="pEtiqueta"></div>
+    <div id="pNivel"></div>
+    <div id="pNombre"></div>
+    <div id="pDatos"></div>
+    <button id="pBoton"></button>
+  </div>
+</div>
+
+<div id="selFormacion">
+  <canvas id="cvPatada2" class="cvPatada"></canvas>
+  <h2 data-i="formacion"></h2>
+  <div class="escena3d"><div id="cilindro"></div></div>
+  <div id="formNombre"></div>
+  <div class="ayudaP" data-i="ayudaPatada"></div>
+  <div id="barraFuerza2" class="barraF"><div id="relleno2" class="relleno"></div></div>
+  <div class="barra">
+    <button id="btnGirarForm" data-i="girar"></button>
+  </div>
+  <div class="barra">
+    <button id="btnEmpezar" disabled class="gb" style="width:260px;padding:12px;margin:4px" onclick="empezarDraft()" data-i="empezar"></button>
+    <button onclick="cerrarFormaciones()" data-i="volver"></button>
+  </div>
+</div>
+
+<div id="fin" class="modal"><canvas id="cvFiesta"></canvas><div class="panel finPanel">
+  <div class="finArriba"><h2 id="finTitulo" data-i="felicitaciones"></h2>
+  <div class="finEtq" data-i="puntosTotales"></div><div id="finPuntos">0</div>
+  </div>
+  <div class="finBtns"><h3 id="finTxt" style="width:100%"></h3><button onclick="cerrarFin(); ir('records')" data-i="verRanking"></button>
+  <button onclick="cerrarFin(); abrirFormaciones()" data-i="jugarOtra"></button></div>
+</div></div>
+
+<script>if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { navigator.serviceWorker.register("sw.js").catch(function () {}); }</script>
+<script src="datos/equipos.js"></script>
+<script src="datos/jugadores.js"></script>
+<script src="datos/banderas.js"></script>
+<script src="datos/three.min.js"></script>
+<script src="datos/avatar.js"></script>
+<script src="datos/personaje3d.js"></script>
+<script src="datos/penal3d.js"></script>
+<script src="datos/fiesta3d.js"></script>
+<script>
+    // Nombres de cada puesto
+    const POS = { ARQ: "Arquero", LD: "Lateral derecho", LI: "Lateral izquierdo", DFC: "Defensor central", MCD: "Medio defensivo",
+      MC: "Mediocampista central", MCO: "Medio ofensivo", MD: "Mediocampista derecho", MI: "Mediocampista izquierdo",
+      ED: "Extremo derecho", EI: "Extremo izquierdo", DC: "Delantero centro" };
+
+    // Formaciones: cada lugar es [puesto, x%, y%] sobre la cancha
+    const D = [["ARQ",50,91],["LD",87,72],["DFC",63,75],["DFC",37,75],["LI",13,72]];
+    const FORMACIONES = {
+      "4-4-2": D.concat([["MD",87,47],["MC",63,50],["MC",37,50],["MI",13,47],["DC",65,17],["DC",35,17]]),
+      "4-3-3": D.concat([["MC",24,48],["MCD",50,56],["MC",76,48],["EI",15,20],["DC",50,14],["ED",85,20]]),
+      "4-1-2-1-2": D.concat([["MCD",50,59],["MC",27,46],["MC",73,46],["MCO",50,33],["DC",64,15],["DC",36,15]]),
+      "4-3-1-2": D.concat([["MC",25,50],["MCD",50,58],["MC",75,50],["MCO",50,34],["DC",64,15],["DC",36,15]]),
+      "4-4-1-1": D.concat([["MD",87,47],["MC",63,51],["MC",37,51],["MI",13,47],["MCO",50,32],["DC",50,14]]),
+      "4-2-3-1": D.concat([["MCD",64,58],["MCD",36,58],["EI",15,36],["MCO",50,35],["ED",85,36],["DC",50,14]]),
+      "3-5-2": [["ARQ",50,91],["DFC",25,76],["DFC",50,79],["DFC",75,76],["LI",10,54],["MC",30,47],["MCD",50,56],["MC",70,47],["LD",90,54],["DC",37,16],["DC",63,16]],
+      "4-5-1": D.concat([["MI",12,45],["MC",32,50],["MCD",50,57],["MC",68,50],["MD",88,45],["DC",50,15]]),
+      "5-3-2": [["ARQ",50,91],["LI",10,68],["DFC",28,76],["DFC",50,79],["DFC",72,76],["LD",90,68],["MC",30,47],["MCD",50,55],["MC",70,47],["DC",38,17],["DC",62,17]],
+      "3-4-3": [["ARQ",50,91],["DFC",25,76],["DFC",50,79],["DFC",75,76],["LI",10,50],["MC",38,52],["MC",62,52],["LD",90,50],["EI",17,20],["DC",50,14],["ED",83,20]]
+    };
+    const NOMBRE_FASE = ["Liga", "Equipo", "Nacionalidad", "Jugador"];
+
+    let slots = [], slotActivo = null, fase = 0, sel = {}, lista = [], girando = false, jugadorActual = null;
+
+    function el(id) { return document.getElementById(id); }
+    function sinRepetidos(l) { return l.filter(function (x, i) { return l.indexOf(x) === i; }); }
+
+    for (const f in FORMACIONES) { el("selForm").add(new Option(f, f)); }
+
+    function empezar() {
+      slots = FORMACIONES[el("selForm").value].map(function (s) { return { pos: s[0], x: s[1], y: s[2], jugador: null }; });
+      el("inicio").style.display = "none";
+      el("juego").style.display = "flex";
+      dibujarCancha();
+    }
+
+    // ===== Estadio visto desde arriba: gradas con público, carteles, césped con rayas y líneas reglamentarias =====
+    let _estadio = "";
+    function estadioSVG() {
+      if (_estadio) { return _estadio; }
+      const cols = ["#e63946", "#ffffff", "#ffd166", "#4cc9f0", "#f72585", "#80ed99", "#ff9f1c", "#9d4edd"];
+      let gente = "";
+      for (let i = 0; i < 70; i++) { gente += '<circle cx="' + (3 + (i % 10) * 4.3 + (Math.floor(i / 10) % 2) * 2) + '" cy="' + (2.5 + Math.floor(i / 10) * 4.2) + '" r="1.7" fill="' + cols[(i * 7 + Math.floor(i / 10) * 3) % cols.length] + '"/>'; }
+      let rayas = "";
+      for (let i = 0; i < 12; i++) { rayas += '<rect x="52" y="' + (55 + i * 32.5) + '" width="266" height="32.5" fill="' + (i % 2 ? "#2f8f3f" : "#37a24a") + '"/>'; }
+      let carteles = "";
+      const cc = ["#e63946", "#1d6fe0", "#ffd166", "#ffffff", "#2ec27e", "#ff9f1c"];
+      for (let i = 0; i < 14; i++) { carteles += '<rect x="' + (45 + i * 20) + '" y="48" width="20" height="5" fill="' + cc[i % 6] + '"/><rect x="' + (45 + i * 20) + '" y="447" width="20" height="5" fill="' + cc[(i + 3) % 6] + '"/>'; }
+      for (let i = 0; i < 20; i++) { carteles += '<rect x="46" y="' + (54 + i * 19.7) + '" width="5" height="19.7" fill="' + cc[(i + 1) % 6] + '"/><rect x="319" y="' + (54 + i * 19.7) + '" width="5" height="19.7" fill="' + cc[(i + 4) % 6] + '"/>'; }
+      const L = 'fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"';
+      _estadio = '<svg class="estadio" viewBox="0 0 370 500" preserveAspectRatio="none"><defs>' +
+        '<pattern id="pubV" width="46" height="46" patternUnits="userSpaceOnUse"><rect width="46" height="46" fill="#1b1f33"/>' + gente + '</pattern>' +
+        '<linearGradient id="sombraT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".65"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>' +
+        '<radialGradient id="foco"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".35" stop-color="#fff6c0" stop-opacity=".45"/><stop offset="1" stop-color="#fff6c0" stop-opacity="0"/></radialGradient></defs>' +
+        '<rect width="370" height="500" rx="14" fill="#0a0d18"/>' +
+        '<polygon points="10,8 360,8 328,46 42,46" fill="url(#pubV)"/><polygon points="10,492 360,492 328,454 42,454" fill="url(#pubV)"/>' +
+        '<polygon points="8,10 44,46 44,454 8,490" fill="url(#pubV)"/><polygon points="362,10 326,46 326,454 362,490" fill="url(#pubV)"/>' +
+        '<polygon points="10,8 360,8 328,46 42,46" fill="url(#sombraT)" opacity=".8"/>' +
+        '<g stroke="#000" stroke-opacity=".35" stroke-width=".8"><line x1="10" y1="8" x2="42" y2="46"/><line x1="360" y1="8" x2="328" y2="46"/><line x1="10" y1="492" x2="42" y2="454"/><line x1="360" y1="492" x2="328" y2="454"/></g>' +
+        '<rect x="44" y="46" width="282" height="408" fill="#c9ced8"/>' + carteles +
+        '<rect x="51" y="53" width="268" height="394" fill="#1f6b2e"/>' + rayas +
+        '<g ' + L + '><rect x="52" y="55" width="266" height="390"/><line x1="52" y1="250" x2="318" y2="250"/><circle cx="185" cy="250" r="36"/>' +
+        '<rect x="106" y="55" width="158" height="61"/><rect x="149" y="55" width="72" height="20"/><path d="M155 116 A36 36 0 0 0 215 116"/>' +
+        '<rect x="106" y="384" width="158" height="61"/><rect x="149" y="425" width="72" height="20"/><path d="M155 384 A36 36 0 0 1 215 384"/>' +
+        '<path d="M52 63 A8 8 0 0 0 60 55"/><path d="M310 55 A8 8 0 0 0 318 63"/><path d="M52 437 A8 8 0 0 1 60 445"/><path d="M310 445 A8 8 0 0 1 318 437"/></g>' +
+        '<g fill="#fff"><circle cx="185" cy="250" r="2.4"/><circle cx="185" cy="96" r="2.2"/><circle cx="185" cy="404" r="2.2"/></g>' +
+        '<g fill="rgba(255,255,255,.18)" stroke="#fff" stroke-width="1.4"><rect x="165" y="44" width="40" height="11"/><rect x="165" y="445" width="40" height="11"/></g>' +
+        '<g fill="url(#foco)"><circle cx="22" cy="22" r="26"/><circle cx="348" cy="22" r="26"/><circle cx="22" cy="478" r="26"/><circle cx="348" cy="478" r="26"/></g></svg>';
+      return _estadio;
+    }
+    // Camiseta en SVG (el arquero lleva otra distinta)
+    function camisetaSVG(pos, estado, texto) {
+      const arq = pos === "ARQ";
+      const cuerpo = estado === "vacio" ? "rgba(255,255,255,.16)" : (arq ? "#f2c100" : "#1e6fe0");
+      const manga = estado === "vacio" ? "rgba(255,255,255,.1)" : (arq ? "#1a1a1a" : "#ffffff");
+      const trazo = estado === "vacio" ? '#fff" stroke-dasharray="5 4' : (estado === "activo" ? "#ffd700" : "#0b1b3a");
+      const ct = estado === "vacio" ? "#fff" : (arq ? "#111" : "#fff");
+      const raya = estado === "lleno" ? '<rect x="26" y="70" width="48" height="5" fill="' + (arq ? "#1a1a1a" : "#ffffff") + '" opacity=".85"/>' : "";
+      return '<svg class="cam" viewBox="0 0 100 100"><polygon points="30,12 10,24 2,46 18,52 26,40" fill="' + manga + '" stroke="' + trazo + '" stroke-width="3" stroke-linejoin="round"/>' +
+        '<polygon points="70,12 90,24 98,46 82,52 74,40" fill="' + manga + '" stroke="' + trazo + '" stroke-width="3" stroke-linejoin="round"/>' +
+        '<path d="M30 12 Q50 26 70 12 L74 40 L74 92 Q50 99 26 92 L26 40 Z" fill="' + cuerpo + '" stroke="' + trazo + '" stroke-width="3" stroke-linejoin="round"/>' + raya +
+        '<path d="M38 12.5 Q50 24 62 12.5" fill="none" stroke="' + (estado === "vacio" ? "#fff" : (arq ? "#1a1a1a" : "#fff")) + '" stroke-width="3.5"/>' +
+        '<text x="50" y="' + (estado === "vacio" ? 62 : 58) + '" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="' + (texto.length > 2 ? 24 : 32) + '" fill="' + ct + '">' + texto + "</text></svg>";
+    }
+
+    function dibujarCancha() {
+      const cancha = el("cancha");
+      let total = 0, cantidad = 0, h = estadioSVG() + '<div class="campo">';
+      slots.forEach(function (s, i) {
+        const act = i === slotActivo, j = s.jugador;
+        const estado = j ? "lleno" : (act ? "activo" : "vacio");
+        if (j) { total = total + j.nivel; cantidad = cantidad + 1; }
+        const partes = j ? j.nombre.split(" ") : [];
+        h += '<div class="puesto ' + estado + (j ? " lleno" : "") + (act ? " activo" : "") + '" data-i="' + i + '" style="left:' + s.x + "%;top:" + s.y + '%">' +
+          camisetaSVG(s.pos, estado, j ? String(j.nivel) : s.pos) + (j ? '<span class="eti">' + esc(partes[partes.length - 1]) + "</span>" : "") + "</div>";
+      });
+      cancha.innerHTML = h + "</div>";
+      Array.prototype.forEach.call(cancha.querySelectorAll(".puesto"), function (d) { d.onclick = function () { elegirPuesto(+d.getAttribute("data-i")); }; });
+      const d = TT[ajustes.idioma];
+      el("total").textContent = cantidad === slots.length
+        ? d.completo + " " + d.nivelTotal + ": " + total
+        : d.jugadores + ": " + cantidad + "/" + slots.length + "  ·  " + d.nivelTotal + ": " + total;
+      dibujarTabla();
+    }
+
+    function elegirPuesto(i) {
+      if (girando || fase > 1 || slots[i].jugador) { return; }   // una vez que giraste, terminá este jugador
+      slotActivo = i; fase = 1; sel = {};
+      el("aviso").textContent = TT[ajustes.idioma].puestoElegido + ": " + POS[slots[i].pos];
+      dibujarCancha();
+      mostrarRuleta();
+    }
+
+    // Jugadores del puesto elegido que todavía no están en la cancha
+    function disponibles() {
+      return JUGADORES.filter(function (j) {
+        return j.posicion === slots[slotActivo].pos && !slots.some(function (s) { return s.jugador && s.jugador.nombre === j.nombre && s.jugador.equipo === j.equipo; });
+      });
+    }
+
+    function listaDeLaFase() {
+      const d = disponibles();
+      if (fase === 1) {
+        const equipos = d.map(function (j) { return j.equipo; });
+        return Object.keys(EQUIPOS).filter(function (l) { return EQUIPOS[l].some(function (e) { return equipos.indexOf(e) !== -1; }); });
+      }
+      if (fase === 2) {
+        return EQUIPOS[sel.liga].filter(function (e) { return d.some(function (j) { return j.equipo === e; }); });
+      }
+      const delEquipo = d.filter(function (j) { return j.equipo === sel.equipo; });
+      if (fase === 3) { return sinRepetidos(delEquipo.map(function (j) { return j.nacionalidad; })); }
+      return delEquipo.filter(function (j) { return j.nacionalidad === sel.nac; }).map(function (j) { return j.nombre; });
+    }
+
+    function guardarElegido(valor) {
+      if (fase === 1) { sel.liga = valor; } else if (fase === 2) { sel.equipo = valor; } else { sel.nac = valor; }
+    }
+
+    // Muestra el recorrido: puesto, liga, equipo y nacionalidad elegidos hasta ahora
+    function actualizarAviso() {
+      let t = TT[ajustes.idioma].puestoElegido + ": " + POS[slots[slotActivo].pos];
+      if (sel.liga) { t = t + "  ·  " + sel.liga; }
+      if (sel.equipo) { t = t + "  ·  " + sel.equipo; }
+      if (sel.nac) { t = t + "  ·  " + sel.nac; }
+      el("aviso").textContent = t;
+    }
+
+    function mostrarRuleta() {
+      lista = listaDeLaFase();
+      // Si una fase tiene una sola opción, se elige sola y se pasa a la siguiente
+      while (lista.length === 1 && fase < 4) { guardarElegido(lista[0]); fase = fase + 1; lista = listaDeLaFase(); }
+      actualizarAviso();
+      // Si queda un solo jugador, se muestra directo sin girar
+      if (lista.length === 1 && fase === 4) { el("zonaRuleta").style.display = "none"; mostrarResultado(lista[0]); return; }
+      el("zonaRuleta").style.display = "block";
+      if (lista.length === 0) {
+        el("titulo").textContent = TT[ajustes.idioma].sinJugadores;
+        el("botonGirar").disabled = true;
+        return;
+      }
+      el("titulo").textContent = TT[ajustes.idioma].fase + " " + fase + ": " + NOMBRE_FASE[fase - 1];
+      el("botonGirar").disabled = false;
+      dibujarRuleta();
+    }
+
+    function mostrarResultado(valor) {
+      el("pNivel").style.display = "none";
+      el("pEtiqueta").textContent = NOMBRE_FASE[fase - 1];
+      el("pNombre").innerHTML = banderaHTML(valor) + esc(valor);
+      el("pDatos").textContent = "";
+      const boton = el("pBoton");
+      if (fase < 4) {
+        boton.textContent = TT[ajustes.idioma].continuar;
+        boton.onclick = function () {
+          guardarElegido(valor);
+          fase = fase + 1;
+          el("presentacion").classList.remove("visible");
+          mostrarRuleta();
+        };
+      } else {
+        const j = disponibles().filter(function (x) { return x.equipo === sel.equipo && x.nombre === valor; })[0];
+        jugadorActual = j;
+        el("pEtiqueta").textContent = j.equipo + "  ·  " + POS[j.posicion];
+        const caja = el("pNivel");
+        caja.style.display = "block";
+        caja.style.color = j.nivel >= 80 ? "#ffd700" : (j.nivel >= 74 ? "#d9d9d9" : "#e0955a");
+        el("pDatos").innerHTML = "#" + j.dorsal + "  ·  " + j.edad + " " + TT[ajustes.idioma].anios + "  ·  " + banderaHTML(j.nacionalidad) + esc(j.nacionalidad);
+        let n = 0; caja.textContent = 0;
+        const reloj = setInterval(function () { n = n + 1; caja.textContent = n; if (n >= j.nivel) { clearInterval(reloj); } }, 15);
+        boton.textContent = TT[ajustes.idioma].sumar;
+        boton.onclick = function () {
+          slots[slotActivo].jugador = jugadorActual;
+          slotActivo = null; fase = 0;
+          el("presentacion").classList.remove("visible");
+          el("zonaRuleta").style.display = "none";
+          el("aviso").textContent = TT[ajustes.idioma].tocaPuesto;
+          dibujarCancha();
+          crecerJuego();
+          if (slots.every(function (s) { return s.jugador; })) { finalizarPartida(); }
+        };
+      }
+      el("presentacion").classList.add("visible");
+    }
+  </script>
+<script>
+// ===== Idiomas =====
+const TT = {
+  es: {
+    creaTitulo: "Creá tu jugador", saltar: "Saltear animación", borrarUsuario: "Borrar usuario", confirmarBorrar: "¿Borrar tu usuario y crear otro? Se pierde tu personaje (los records quedan).", dorsal: "Dorsal (1 a 99)", piel: "Color de piel", peinado: "Peinado", colorPelo: "Color de pelo", barba: "Barba", colorBarba: "Color de barba", camiseta: "Camiseta", guardarEntrar: "Guardar y entrar", giraArrastra: "Arrastrá para girar a tu jugador", nombreObligatorio: "Escribí tu nombre de usuario para continuar.",
+    peinados: ["Afro", "Corto", "Con flequillo", "Mohicano", "Largo suelto", "Con colita", "Rulos", "Calvo", "Con jopo", "Con moño"], barbas: ["Sin barba", "Candado", "Perilla", "Bigote", "Barba corta", "Barba larga", "Patillas"], camisetas: ["Rayo", "Selva", "Noche", "Sol"],
+    felicitaciones: "¡FELICITACIONES!", puntosTotales: "PUNTOS TOTALES", rankingBtn: "Ver ranking",
+    unJugador: "UN JUGADOR", multijugador: "MULTIJUGADOR", opciones: "OPCIONES", records: "RECORDS", salir: "SALIR", miPerfil: "MI PERFIL", volver: "Volver", menuBtn: "Menú", reiniciar: "Reiniciar selección",
+    formacion: "Elegí tu formación:", empezar: "Empezar", tocaPuesto: "Tocá un lugar vacío de la cancha para elegir ese puesto", puestoElegido: "Puesto elegido", fase: "Fase", girar: "PATEA", ayudaPatada: "Mantené apretado para cargar la fuerza y soltá para patear", continuar: "Continuar", sumar: "Sumar a mi equipo",
+    jugadores: "Jugadores", nivelTotal: "Nivel total", completo: "¡Equipo completo!", sinJugadores: "No hay jugadores cargados para este puesto", anios: "años", usuario: "Usuario",
+    sinRecords: "Todavía no hay partidas. ¡Armá tu primer equipo!", entraste: "¡Entraste al Top 10! Puesto", noEntraste: "No alcanzó para el Top 10. ¡Probá de nuevo!", verRanking: "Ver ranking", jugarOtra: "Jugar de nuevo", felicitaciones: "¡FELICITACIONES!", puntosTotales: "Puntos totales",
+    video: "Video", fondoAnimado: "Fondo animado", videoProx: "Más ajustes de video próximamente.", audio: "Audio", musica: "Música", efectos: "Efectos", audioProx: "Los sonidos se agregarán más adelante.", idioma: "Idioma",
+    nombreUsuario: "Nombre de usuario", elegiAvatar: "Elegí tu avatar", guardar: "Guardar", guardado: "¡Guardado!", varones: "Varones", mujeres: "Mujeres", jugadorDef: "Jugador",
+    draft: "MI DRAFT", cPos: "Pos.", cJug: "Jugador", cEq: "Equipo", cPais: "País", cEdad: "Edad", cNivel: "Nivel", proximamente: "El modo multijugador llegará pronto.", salirTxt: "¿Querés salir del juego?", cerrarTab: "Ya podés cerrar esta pestaña o ventana.",
+    fases: ["Liga", "Equipo", "Nacionalidad", "Jugador"],
+    pos: { ARQ: "Arquero", LD: "Lateral derecho", LI: "Lateral izquierdo", DFC: "Defensor central", MCD: "Medio defensivo", MC: "Mediocampista central", MCO: "Medio ofensivo", MD: "Mediocampista derecho", MI: "Mediocampista izquierdo", ED: "Extremo derecho", EI: "Extremo izquierdo", DC: "Delantero centro" } },
+  en: {
+    creaTitulo: "Create your player", saltar: "Skip animation", borrarUsuario: "Delete user", confirmarBorrar: "Delete your user and create a new one? Your character will be lost (records stay).", dorsal: "Shirt number (1 to 99)", piel: "Skin tone", peinado: "Hairstyle", colorPelo: "Hair color", barba: "Beard", colorBarba: "Beard color", camiseta: "Jersey", guardarEntrar: "Save and enter", giraArrastra: "Drag to rotate your player", nombreObligatorio: "Type a username to continue.",
+    peinados: ["Afro", "Short", "Fringe", "Mohawk", "Long loose", "Ponytail", "Curls", "Bald", "Quiff", "Bun"], barbas: ["No beard", "Goatee", "Soul patch", "Moustache", "Short beard", "Long beard", "Sideburns"], camisetas: ["Bolt", "Jungle", "Night", "Sun"],
+    felicitaciones: "CONGRATULATIONS!", puntosTotales: "TOTAL POINTS", rankingBtn: "View ranking",
+    unJugador: "SINGLE PLAYER", multijugador: "MULTIPLAYER", opciones: "OPTIONS", records: "RECORDS", salir: "EXIT", miPerfil: "MY PROFILE", volver: "Back", menuBtn: "Menu", reiniciar: "Restart selection",
+    formacion: "Choose your formation:", empezar: "Start", tocaPuesto: "Tap an empty spot on the pitch to pick that position", puestoElegido: "Position", fase: "Step", girar: "KICK", ayudaPatada: "Hold to charge the power and release to kick", continuar: "Continue", sumar: "Add to my team",
+    jugadores: "Players", nivelTotal: "Total rating", completo: "Team complete!", sinJugadores: "No players loaded for this position", anios: "years old", usuario: "User",
+    sinRecords: "No games yet. Build your first team!", entraste: "You made the Top 10! Rank", noEntraste: "Not enough for the Top 10. Try again!", verRanking: "View ranking", jugarOtra: "Play again", felicitaciones: "CONGRATULATIONS!", puntosTotales: "Total points",
+    video: "Video", fondoAnimado: "Animated background", videoProx: "More video settings coming soon.", audio: "Audio", musica: "Music", efectos: "Effects", audioProx: "Sounds will be added later.", idioma: "Language",
+    nombreUsuario: "Username", elegiAvatar: "Choose your avatar", guardar: "Save", guardado: "Saved!", varones: "Boys", mujeres: "Girls", jugadorDef: "Player",
+    draft: "MY DRAFT", cPos: "Pos.", cJug: "Player", cEq: "Team", cPais: "Country", cEdad: "Age", cNivel: "Rating", proximamente: "Multiplayer mode is coming soon.", salirTxt: "Do you want to exit the game?", cerrarTab: "You can now close this tab or window.",
+    fases: ["League", "Team", "Nationality", "Player"],
+    pos: { ARQ: "Goalkeeper", LD: "Right back", LI: "Left back", DFC: "Centre back", MCD: "Defensive midfielder", MC: "Central midfielder", MCO: "Attacking midfielder", MD: "Right midfielder", MI: "Left midfielder", ED: "Right winger", EI: "Left winger", DC: "Striker" } },
+  pt: {
+    creaTitulo: "Crie seu jogador", saltar: "Pular animação", borrarUsuario: "Apagar usuário", confirmarBorrar: "Apagar seu usuário e criar outro? Seu personagem será perdido (os recordes ficam).", dorsal: "Número (1 a 99)", piel: "Cor da pele", peinado: "Penteado", colorPelo: "Cor do cabelo", barba: "Barba", colorBarba: "Cor da barba", camiseta: "Camisa", guardarEntrar: "Salvar e entrar", giraArrastra: "Arraste para girar seu jogador", nombreObligatorio: "Digite seu nome de usuário para continuar.",
+    peinados: ["Afro", "Curto", "Com franja", "Moicano", "Longo solto", "Rabo de cavalo", "Cachos", "Careca", "Topete", "Coque"], barbas: ["Sem barba", "Cavanhaque", "Pera", "Bigode", "Barba curta", "Barba longa", "Costeletas"], camisetas: ["Raio", "Selva", "Noite", "Sol"],
+    felicitaciones: "PARABÉNS!", puntosTotales: "PONTOS TOTAIS", rankingBtn: "Ver ranking",
+    unJugador: "UM JOGADOR", multijugador: "MULTIJOGADOR", opciones: "OPÇÕES", records: "RECORDES", salir: "SAIR", miPerfil: "MEU PERFIL", volver: "Voltar", menuBtn: "Menu", reiniciar: "Reiniciar seleção",
+    formacion: "Escolha sua formação:", empezar: "Começar", tocaPuesto: "Toque em um lugar vazio do campo para escolher essa posição", puestoElegido: "Posição", fase: "Fase", girar: "CHUTA", ayudaPatada: "Segure para carregar a força e solte para chutar", continuar: "Continuar", sumar: "Adicionar ao meu time",
+    jugadores: "Jogadores", nivelTotal: "Nível total", completo: "Time completo!", sinJugadores: "Não há jogadores carregados para esta posição", anios: "anos", usuario: "Usuário",
+    sinRecords: "Ainda não há partidas. Monte seu primeiro time!", entraste: "Você entrou no Top 10! Posição", noEntraste: "Não foi suficiente para o Top 10. Tente de novo!", verRanking: "Ver ranking", jugarOtra: "Jogar de novo", felicitaciones: "PARABÉNS!", puntosTotales: "Pontos totais",
+    video: "Vídeo", fondoAnimado: "Fundo animado", videoProx: "Mais ajustes de vídeo em breve.", audio: "Áudio", musica: "Música", efectos: "Efeitos", audioProx: "Os sons serão adicionados depois.", idioma: "Idioma",
+    nombreUsuario: "Nome de usuário", elegiAvatar: "Escolha seu avatar", guardar: "Salvar", guardado: "Salvo!", varones: "Meninos", mujeres: "Meninas", jugadorDef: "Jogador",
+    draft: "MEU DRAFT", cPos: "Pos.", cJug: "Jogador", cEq: "Time", cPais: "País", cEdad: "Idade", cNivel: "Nível", proximamente: "O modo multijogador chegará em breve.", salirTxt: "Quer sair do jogo?", cerrarTab: "Agora você pode fechar esta aba ou janela.",
+    fases: ["Liga", "Time", "Nacionalidade", "Jogador"],
+    pos: { ARQ: "Goleiro", LD: "Lateral direito", LI: "Lateral esquerdo", DFC: "Zagueiro central", MCD: "Volante", MC: "Meio-campista central", MCO: "Meia ofensivo", MD: "Meio-campista direito", MI: "Meio-campista esquerdo", ED: "Ponta direito", EI: "Ponta esquerdo", DC: "Centroavante" } },
+  it: {
+    creaTitulo: "Crea il tuo giocatore", saltar: "Salta animazione", borrarUsuario: "Elimina utente", confirmarBorrar: "Eliminare il tuo utente e crearne un altro? Il personaggio andrà perso (i record restano).", dorsal: "Numero (da 1 a 99)", piel: "Colore della pelle", peinado: "Taglio di capelli", colorPelo: "Colore dei capelli", barba: "Barba", colorBarba: "Colore della barba", camiseta: "Maglia", guardarEntrar: "Salva ed entra", giraArrastra: "Trascina per ruotare il tuo giocatore", nombreObligatorio: "Scrivi il tuo nome utente per continuare.",
+    peinados: ["Afro", "Corto", "Con frangia", "Mohicano", "Lungo sciolto", "Codino", "Ricci", "Calvo", "Ciuffo", "Chignon"], barbas: ["Senza barba", "Pizzetto", "Barbetta", "Baffi", "Barba corta", "Barba lunga", "Basette"], camisetas: ["Fulmine", "Giungla", "Notte", "Sole"],
+    felicitaciones: "COMPLIMENTI!", puntosTotales: "PUNTI TOTALI", rankingBtn: "Vedi classifica",
+    unJugador: "UN GIOCATORE", multijugador: "MULTIGIOCATORE", opciones: "OPZIONI", records: "RECORD", salir: "ESCI", miPerfil: "IL MIO PROFILO", volver: "Indietro", menuBtn: "Menu", reiniciar: "Riavvia selezione",
+    formacion: "Scegli il tuo modulo:", empezar: "Inizia", tocaPuesto: "Tocca un posto vuoto del campo per scegliere quel ruolo", puestoElegido: "Ruolo", fase: "Fase", girar: "TIRA", ayudaPatada: "Tieni premuto per caricare la forza e rilascia per tirare", continuar: "Continua", sumar: "Aggiungi alla mia squadra",
+    jugadores: "Giocatori", nivelTotal: "Livello totale", completo: "Squadra completa!", sinJugadores: "Nessun giocatore caricato per questo ruolo", anios: "anni", usuario: "Utente",
+    sinRecords: "Ancora nessuna partita. Costruisci la tua prima squadra!", entraste: "Sei entrato nella Top 10! Posizione", noEntraste: "Non basta per la Top 10. Riprova!", verRanking: "Vedi classifica", jugarOtra: "Gioca ancora", felicitaciones: "COMPLIMENTI!", puntosTotales: "Punti totali",
+    video: "Video", fondoAnimado: "Sfondo animato", videoProx: "Altre impostazioni video in arrivo.", audio: "Audio", musica: "Musica", efectos: "Effetti", audioProx: "I suoni saranno aggiunti più avanti.", idioma: "Lingua",
+    nombreUsuario: "Nome utente", elegiAvatar: "Scegli il tuo avatar", guardar: "Salva", guardado: "Salvato!", varones: "Maschi", mujeres: "Femmine", jugadorDef: "Giocatore",
+    draft: "IL MIO DRAFT", cPos: "Ruolo", cJug: "Giocatore", cEq: "Squadra", cPais: "Paese", cEdad: "Età", cNivel: "Livello", proximamente: "La modalità multigiocatore arriverà presto.", salirTxt: "Vuoi uscire dal gioco?", cerrarTab: "Ora puoi chiudere questa scheda o finestra.",
+    fases: ["Campionato", "Squadra", "Nazionalità", "Giocatore"],
+    pos: { ARQ: "Portiere", LD: "Terzino destro", LI: "Terzino sinistro", DFC: "Difensore centrale", MCD: "Mediano", MC: "Centrocampista centrale", MCO: "Trequartista", MD: "Centrocampista destro", MI: "Centrocampista sinistro", ED: "Ala destra", EI: "Ala sinistra", DC: "Centravanti" } }
+};
+
+// ===== Datos guardados en el navegador (ajustes, perfil y records) =====
+function leer(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+function guardar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+const ajustes = Object.assign({ fondo: true, musica: 70, efectos: 70, idioma: "es" }, leer("rfd_ajustes", {}));
+const perfil = Object.assign({ nombre: "", avatar: 0, dorsal: 10, piel: 1, pelo: 1, colPelo: 0, barba: 0, colBarba: 0, camisa: 0, creado: false, foto: "" }, leer("rfd_perfil", {}));
+function L() { return TT[ajustes.idioma]; }
+
+// ===== Navegación =====
+function ir(id) {
+  document.querySelectorAll(".pant").forEach(function (p) { p.classList.remove("activa"); });
+  el(id).classList.add("activa");
+  window.scrollTo(0, 0);
+  if (id === "records") { dibujarRecords(); }
+  if (id === "perfil") { abrirPerfil(); } else if (visorPerfil) { visorPerfil.detener(); }
+  if (id === "opciones") { cargarOpciones(); }
+  if (id === "menu") { dibujarChip(); }
+}
+function entrarMenu() { if (perfil.creado) { ir("menu"); } else { ir("perfil"); } }   // la primera vez en cada aparato: crear el personaje
+const tIntro = setTimeout(entrarMenu, 5500);
+function saltarIntro() { clearTimeout(tIntro); entrarMenu(); }
+function salir() {
+  if (confirm(L().salirTxt)) { window.close(); setTimeout(function () { alert(L().cerrarTab); }, 400); }
+}
+function aplicarIdioma() {
+  const d = L();
+  document.documentElement.lang = ajustes.idioma;
+  document.querySelectorAll("[data-i]").forEach(function (e) { e.textContent = d[e.dataset.i]; });
+  Object.assign(POS, d.pos);
+  d.fases.forEach(function (x, i) { NOMBRE_FASE[i] = x; });
+  if (slotActivo === null) { el("aviso").textContent = d.tocaPuesto; }
+  if (slots.length) { dibujarCancha(); }
+  dibujarChip();
+}
+function cambiarIdioma(v) { ajustes.idioma = v; guardar("rfd_ajustes", ajustes); aplicarIdioma(); }
+
+// ===== Opciones =====
+function cargarOpciones() { el("optFondo").checked = ajustes.fondo; el("optMusica").value = ajustes.musica; el("optEfectos").value = ajustes.efectos; el("optIdioma").value = ajustes.idioma; }
+function guardarAjustes() {
+  ajustes.fondo = el("optFondo").checked; ajustes.musica = +el("optMusica").value; ajustes.efectos = +el("optEfectos").value;
+  guardar("rfd_ajustes", ajustes); iniciarFondo();
+}
+
+// ===== Fondo: interior de un estadio mundialista, visto desde el pecho de un jugador =====
+const fondo = el("fondo"), fx = fondo.getContext("2d");
+let W = 0, H = 0, rafId = 0, tPrev = 0;
+function ajustarFondo() { W = fondo.width = innerWidth; H = fondo.height = innerHeight; }
+addEventListener("resize", function () { ajustarFondo(); if (!ajustes.fondo) { dibujarFondo(0, true); } });
+const LX = 34, LZ = 52.5;                         // medidas reales de una cancha, en metros
+const COLS = ["#d62828", "#ffffff", "#2a7de1", "#ffd23f", "#2e9e4f"];
+
+// --- Hinchada bizarra: 16 disfraces dibujados una sola vez en una hoja de figuritas ---
+const SP = document.createElement("canvas"); SP.width = 48 * 16; SP.height = 64;
+const sc = SP.getContext("2d");
+function disco(x, y, r, c) { sc.fillStyle = c; sc.beginPath(); sc.arc(x, y, r, 0, 7); sc.fill(); }
+function caja(x, y, w, h, c) { sc.fillStyle = c; sc.fillRect(x, y, w, h); }
+function tri(a, b, c, d, e, f, col) { sc.fillStyle = col; sc.beginPath(); sc.moveTo(a, b); sc.lineTo(c, d); sc.lineTo(e, f); sc.fill(); }
+function elipse(x, y, rx, ry, c) { sc.fillStyle = c; sc.beginPath(); sc.ellipse(x, y, rx, ry, 0, 0, 7); sc.fill(); }
+const PIEL = ["#f6d3b0", "#d9a066", "#8d5a3b", "#ffe0c2"];
+for (let i = 0; i < 16; i++) {
+  sc.save(); sc.translate(i * 48, 0);
+  sc.strokeStyle = PIEL[i % 4]; sc.lineWidth = 5; sc.beginPath(); sc.moveTo(8, 50); sc.lineTo(2, 34); sc.moveTo(40, 50); sc.lineTo(46, 34); sc.stroke();   // brazos arriba
+  caja(8, 46, 32, 18, COLS[i % 5]); disco(24, 32, 12, PIEL[i % 4]);
+  if (i === 0) { elipse(24, 20, 22, 5, "#e8b23a"); tri(14, 20, 34, 20, 24, 2, "#d62828"); }
+  if (i === 1) { disco(24, 32, 12, "#d62828"); elipse(18, 31, 4, 3, "#fff"); elipse(30, 31, 4, 3, "#fff"); caja(19, 38, 10, 3, "#fff"); }
+  if (i === 2) { disco(24, 32, 12, "#2e9e4f"); tri(14, 24, 18, 8, 22, 22, "#1d6b34"); tri(22, 22, 26, 6, 30, 22, "#1d6b34"); tri(28, 22, 33, 10, 35, 26, "#1d6b34"); tri(17, 41, 20, 47, 23, 41, "#fff"); tri(25, 41, 28, 47, 31, 41, "#fff"); disco(18, 30, 2, "#ffd23f"); disco(30, 30, 2, "#ffd23f"); }
+  if (i === 3) { sc.strokeStyle = "#ffd23f"; sc.lineWidth = 7; sc.beginPath(); sc.arc(24, 30, 18, 3.4, 6.0); sc.stroke(); disco(8, 26, 3, "#7a4a12"); }
+  if (i === 4) { sc.fillStyle = "#9aa4b0"; sc.beginPath(); sc.arc(24, 30, 13, 3.14, 0); sc.fill(); tri(10, 28, 1, 8, 14, 20, "#fff"); tri(38, 28, 47, 8, 34, 20, "#fff"); }
+  if (i === 5) { sc.fillStyle = "#e63946"; sc.beginPath(); sc.arc(24, 28, 19, 3.14, 0); sc.fill(); sc.fillStyle = "#ffd23f"; sc.beginPath(); sc.arc(24, 28, 14, 3.14, 0); sc.fill(); sc.fillStyle = "#2e9e4f"; sc.beginPath(); sc.arc(24, 28, 9, 3.14, 0); sc.fill(); }
+  if (i === 6) { disco(10, 28, 7, "#ff8c1a"); disco(38, 28, 7, "#ff8c1a"); disco(24, 36, 4, "#e63946"); caja(16, 40, 16, 3, "#fff"); }
+  if (i === 7) { disco(24, 32, 12, "#7be26f"); elipse(18, 31, 4, 6, "#111"); elipse(30, 31, 4, 6, "#111"); sc.strokeStyle = "#7be26f"; sc.lineWidth = 2; sc.beginPath(); sc.moveTo(18, 22); sc.lineTo(12, 4); sc.moveTo(30, 22); sc.lineTo(36, 4); sc.stroke(); disco(12, 4, 3, "#ffd23f"); disco(36, 4, 3, "#ffd23f"); }
+  if (i === 8) { disco(24, 32, 12, "#fff"); disco(18, 27, 3, "#222"); disco(31, 36, 3, "#222"); tri(12, 24, 6, 10, 18, 22, "#e8d9a8"); tri(36, 24, 42, 10, 30, 22, "#e8d9a8"); elipse(24, 39, 7, 4, "#f2a1b3"); }
+  if (i === 9) { caja(14, 8, 20, 14, "#fff"); disco(14, 10, 6, "#fff"); disco(24, 6, 7, "#fff"); disco(34, 10, 6, "#fff"); caja(14, 20, 20, 4, "#ddd"); }
+  if (i === 10) { caja(11, 21, 26, 23, "#aab4c0"); disco(24, 32, 5, "#ff2a2a"); sc.strokeStyle = "#aab4c0"; sc.lineWidth = 2; sc.beginPath(); sc.moveTo(24, 21); sc.lineTo(24, 6); sc.stroke(); disco(24, 5, 3, "#ff2a2a"); caja(16, 40, 16, 2, "#333"); }
+  if (i === 11) { caja(11, 20, 26, 7, "#d62828"); disco(18, 23, 1.5, "#fff"); disco(28, 23, 1.5, "#fff"); disco(30, 33, 4, "#111"); }
+  if (i === 12) { tri(11, 26, 11, 8, 24, 21, "#444"); tri(37, 26, 37, 8, 24, 21, "#444"); tri(14, 22, 14, 13, 20, 21, "#f2a1b3"); tri(34, 22, 34, 13, 28, 21, "#f2a1b3"); caja(6, 36, 10, 1, "#222"); caja(32, 36, 10, 1, "#222"); }
+  if (i === 13) { sc.fillStyle = "#2a7de1"; sc.beginPath(); sc.arc(24, 32, 12, 1.57, 4.71); sc.fill(); sc.fillStyle = "#fff"; sc.beginPath(); sc.arc(24, 32, 12, -1.57, 1.57); sc.fill(); caja(22, 20, 4, 24, "#d62828"); }
+  if (i === 14) { disco(24, 32, 13, "#ff8c1a"); tri(15, 28, 20, 28, 17, 34, "#222"); tri(28, 28, 33, 28, 31, 34, "#222"); caja(17, 39, 14, 3, "#222"); caja(22, 16, 4, 7, "#2e7d32"); }
+  if (i === 15) { tri(8, 24, 40, 24, 24, 2, "#ffd23f"); disco(20, 14, 3, "#c1272d"); disco(28, 18, 3, "#c1272d"); }
+  sc.restore();
+}
+const NFAN = innerWidth < 800 ? 800 : 1500, hinchas = [];
+function puntoTribuna(k, u, v) {
+  if (k < 2) { return [-(LX + 16) + u * 2 * (LX + 16), 2 + v * 22, (k ? 1 : -1) * (LZ + 10 + v * 14)]; }
+  return [(k === 3 ? 1 : -1) * (LX + 8 + v * 12), 2 + v * 20, -(LZ + 12) + u * 2 * (LZ + 12)];
+}
+for (let k = 0; k < 4; k++) { for (let i = 0; i < NFAN; i++) { hinchas.push({ w: puntoTribuna(k, Math.random(), Math.random()), t: Math.floor(Math.random() * 16), f: Math.random() * 6 }); } }
+const BENGALAS = [[-1, -20, "255,40,40"], [1, 10, "40,255,90"], [-1, 35, "255,200,40"], [1, -30, "255,60,200"]];   // humo de colores en las tribunas
+
+// --- Marcas de la cancha y arcos ---
+const LIN = [], ARCO = [];
+function L2(a, b, c, d) { LIN.push([[a, 0.02, b], [c, 0.02, d]]); }
+L2(-LX, -LZ, LX, -LZ); L2(LX, -LZ, LX, LZ); L2(LX, LZ, -LX, LZ); L2(-LX, LZ, -LX, -LZ); L2(-LX, 0, LX, 0);
+for (let i = 0; i < 28; i++) { const a = i / 28 * 6.2832, b = (i + 1) / 28 * 6.2832; L2(9.15 * Math.cos(a), 9.15 * Math.sin(a), 9.15 * Math.cos(b), 9.15 * Math.sin(b)); }
+[-1, 1].forEach(function (s) {
+  L2(-20.15, s * LZ, -20.15, s * (LZ - 16.5)); L2(-20.15, s * (LZ - 16.5), 20.15, s * (LZ - 16.5)); L2(20.15, s * (LZ - 16.5), 20.15, s * LZ);
+  L2(-9.15, s * LZ, -9.15, s * (LZ - 5.5)); L2(-9.15, s * (LZ - 5.5), 9.15, s * (LZ - 5.5)); L2(9.15, s * (LZ - 5.5), 9.15, s * LZ);
+  ARCO.push([[-3.66, 0, s * LZ], [-3.66, 2.44, s * LZ]], [[3.66, 0, s * LZ], [3.66, 2.44, s * LZ]], [[-3.66, 2.44, s * LZ], [3.66, 2.44, s * LZ]]);
+});
+
+// --- Cámara en el pecho ---
+const C = { x: 0, y: 1.4, z: 0, yaw: 0, hd: 0, cos: 1, sin: 0 };
+function mover(t) {
+  const vx = 14 * 0.09 * Math.cos(t * 0.09 + 1), vz = 30 * 0.12 * Math.cos(t * 0.12);
+  const objetivo = Math.atan2(vx, vz) + Math.sin(t * 0.9) * 0.5;
+  let dif = objetivo - C.hd; dif = Math.atan2(Math.sin(dif), Math.cos(dif)); C.hd += dif * 0.03;
+  C.yaw = C.hd + Math.sin(t * 8) * 0.012;
+  C.x = 14 * Math.sin(t * 0.09 + 1) + Math.sin(t * 8) * 0.04; C.z = 30 * Math.sin(t * 0.12);
+  C.y = 1.4 + Math.abs(Math.sin(t * 8)) * 0.07;
+  C.cos = Math.cos(C.yaw); C.sin = Math.sin(C.yaw);
+}
+function P(x, y, z) { const dx = x - C.x, dz = z - C.z; return [dx * C.cos - dz * C.sin, y - C.y, dx * C.sin + dz * C.cos]; }
+function S(p) { const f = H * 0.95; return [W / 2 + p[0] / p[2] * f, H * 0.52 - p[1] / p[2] * f]; }
+function recortar(pts) {
+  const out = [], n = 0.4;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length], ia = a[2] >= n, ib = b[2] >= n;
+    if (ia) { out.push(a); }
+    if (ia !== ib) { const k = (n - a[2]) / (b[2] - a[2]); out.push([a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, n]); }
+  }
+  return out;
+}
+function poli(pts, color) {
+  const q = recortar(pts.map(function (p) { return P(p[0], p[1], p[2]); }));
+  if (q.length < 3) { return; }
+  fx.fillStyle = color; fx.beginPath();
+  q.forEach(function (p, i) { const s = S(p); if (i) { fx.lineTo(s[0], s[1]); } else { fx.moveTo(s[0], s[1]); } });
+  fx.fill();
+}
+function seg(a, b) {
+  let p = P(a[0], a[1], a[2]), q = P(b[0], b[1], b[2]); const n = 0.4;
+  if (p[2] < n && q[2] < n) { return; }
+  if (p[2] < n) { const k = (n - p[2]) / (q[2] - p[2]); p = [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k, n]; }
+  else if (q[2] < n) { const k = (n - q[2]) / (p[2] - q[2]); q = [q[0] + (p[0] - q[0]) * k, q[1] + (p[1] - q[1]) * k, n]; }
+  const s1 = S(p), s2 = S(q); fx.moveTo(s1[0], s1[1]); fx.lineTo(s2[0], s2[1]);
+}
+
+// --- Jugadores: blanco (con banda celeste y detalles dorados) contra rojo (con chevrón negro), caras estilo anime de acción ---
+const jug = [], bola = { x: 0, z: 0, dueno: 0 };
+const HC = ["#111111", "#111111", "#f5d20a", "#1a3fb0", "#e85d04", "#111111", "#7b2cbf"];
+const PELOS = [
+  [[-1.1, .3], [-1.2, -.7], [-.8, -.2], [-.7, -1.6], [-.35, -.6], [0, -2.1], [.35, -.6], [.75, -1.6], [.8, -.2], [1.2, -.8], [1.1, .3]],
+  [[-1.1, .3], [-1.3, -.4], [-2, .2], [-1.4, -.9], [-2, -1.2], [-.8, -1.2], [0, -1.7], [.8, -1.2], [1.5, -1.4], [1.1, -.6], [1.1, .3]],
+  [[-1.1, .3], [-1.1, -.8], [-.5, -1.2], [-.55, -2.3], [0, -1.3], [.5, -2.2], [.55, -1.2], [1.1, -.8], [1.1, .3]]];
+function azar(m) { return (Math.random() - 0.5) * 2 * m; }
+for (let i = 0; i < 14; i++) { jug.push({ x: azar(LX * 0.9), z: azar(LZ * 0.9), tx: azar(LX * 0.9), tz: azar(LZ * 0.9), eq: i % 2, ph: Math.random() * 6, pelo: i % 3, hc: HC[i % 7] }); }
+function actualizar(dt) {
+  jug.forEach(function (p) {
+    const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz);
+    if (d < 1.5) { p.tx = azar(LX * 0.9); p.tz = azar(LZ * 0.9); } else { p.x += dx / d * 5 * dt; p.z += dz / d * 5 * dt; }
+  });
+  const q = jug[bola.dueno], dx = q.x - bola.x, dz = q.z - bola.z, d = Math.hypot(dx, dz);
+  if (d < 1.2) { bola.dueno = Math.floor(Math.random() * 14); } else { bola.x += dx / d * 14 * dt; bola.z += dz / d * 14 * dt; }
+}
+function polig(pts, col, borde) { fx.fillStyle = col; fx.beginPath(); pts.forEach(function (p, i) { if (i) { fx.lineTo(p[0], p[1]); } else { fx.moveTo(p[0], p[1]); } }); fx.closePath(); fx.fill(); if (borde) { fx.strokeStyle = borde; fx.lineWidth = 1; fx.stroke(); } }
+function dibujarJugador(p, t) {
+  const b = P(p.x, 0, p.z);
+  if (b[2] < 1.5) { return; }
+  const h = P(p.x, 1.8, p.z), sb = S(b), sh = S(h), alto = sb[1] - sh[1], a = alto * 0.3, x = sb[0], y = sb[1];
+  const sw = Math.sin(t * 9 + p.ph) * alto * 0.12, blanco = !p.eq;
+  const hip = y - alto * 0.47, hom = y - alto * 0.8, r = alto * 0.095, hy = y - alto * 0.9;
+  const camis = blanco ? "#f7f9fc" : "#c4161c", det = blanco ? "#2a9df4" : "#111111", oro = "#d4af37", pant = blanco ? "#f7f9fc" : "#111111", media = blanco ? "#ffffff" : "#c4161c";
+  fx.fillStyle = "rgba(0,0,0,.35)"; fx.beginPath(); fx.ellipse(x, y, a * 0.9, a * 0.25, 0, 0, 7); fx.fill();
+  // medias y botines
+  fx.strokeStyle = media; fx.lineWidth = a * 0.28; fx.beginPath();
+  fx.moveTo(x - a * 0.2, hip); fx.lineTo(x - a * 0.2 + sw, y - a * 0.1); fx.moveTo(x + a * 0.2, hip); fx.lineTo(x + a * 0.2 - sw, y - a * 0.1); fx.stroke();
+  fx.strokeStyle = det; fx.lineWidth = a * 0.1; fx.beginPath(); fx.moveTo(x - a * 0.2 + sw * 0.8 - a * .14, y - alto * .12); fx.lineTo(x - a * 0.2 + sw * 0.8 + a * .14, y - alto * .12); fx.moveTo(x + a * 0.2 - sw * 0.8 - a * .14, y - alto * .12); fx.lineTo(x + a * 0.2 - sw * 0.8 + a * .14, y - alto * .12); fx.stroke();
+  fx.fillStyle = "#111"; fx.fillRect(x - a * 0.38 + sw, y - a * 0.14, a * 0.36, a * 0.14); fx.fillRect(x + a * 0.02 - sw, y - a * 0.14, a * 0.36, a * 0.14);
+  // brazos
+  fx.strokeStyle = "#f1c9a0"; fx.lineWidth = a * 0.22; fx.beginPath(); fx.moveTo(x - a * 0.55, hom + a * 0.1); fx.lineTo(x - a * 0.7 - sw * 0.5, hip); fx.moveTo(x + a * 0.55, hom + a * 0.1); fx.lineTo(x + a * 0.7 + sw * 0.5, hip); fx.stroke();
+  fx.strokeStyle = camis; fx.lineWidth = a * 0.26; fx.beginPath(); fx.moveTo(x - a * 0.55, hom + a * 0.1); fx.lineTo(x - a * 0.62 - sw * 0.2, hom + alto * 0.1); fx.moveTo(x + a * 0.55, hom + a * 0.1); fx.lineTo(x + a * 0.62 + sw * 0.2, hom + alto * 0.1); fx.stroke();
+  // pantalón y camiseta con diseño
+  polig([[x - a * 0.5, hip - alto * 0.02], [x + a * 0.5, hip - alto * 0.02], [x + a * 0.55, hip + alto * 0.13], [x - a * 0.55, hip + alto * 0.13]], pant, blanco ? "#cfd8e3" : null);
+  fx.fillStyle = blanco ? det : "#c4161c"; fx.fillRect(x - a * 0.55, hip, a * 0.1, alto * 0.13); fx.fillRect(x + a * 0.45, hip, a * 0.1, alto * 0.13);
+  polig([[x - a * 0.55, hom], [x + a * 0.55, hom], [x + a * 0.45, hip], [x - a * 0.45, hip]], camis, blanco ? "#cfd8e3" : "#7a0b10");
+  if (blanco) { polig([[x - a * 0.55, hom], [x - a * 0.12, hom], [x + a * 0.45, hip], [x + a * 0.1, hip]], det); }
+  else { polig([[x - a * 0.5, hom + alto * 0.08], [x, hom + alto * 0.17], [x + a * 0.5, hom + alto * 0.08], [x + a * 0.5, hom + alto * 0.13], [x, hom + alto * 0.22], [x - a * 0.5, hom + alto * 0.13]], det); fx.fillStyle = det; fx.fillRect(x - a * 0.55, hom, a * 0.14, alto * 0.06); fx.fillRect(x + a * 0.41, hom, a * 0.14, alto * 0.06); }
+  fx.strokeStyle = oro; fx.lineWidth = Math.max(1, a * 0.07); fx.beginPath(); fx.moveTo(x - a * 0.2, hom); fx.lineTo(x, hom + alto * 0.03); fx.lineTo(x + a * 0.2, hom); fx.stroke();
+  fx.fillStyle = oro; fx.beginPath(); fx.arc(x + a * 0.25, hom + alto * 0.08, Math.max(1, a * 0.07), 0, 7); fx.fill();
+  // cabeza angulosa con pelo en picos y cejas intensas
+  const cabeza = [[-1, -.2], [-.95, .5], [-.45, 1.05], [0, 1.25], [.45, 1.05], [.95, .5], [1, -.2], [.7, -.9], [-.7, -.9]];
+  polig(cabeza.map(function (q) { return [x + q[0] * r, hy + q[1] * r]; }), "#f6d3b0", "#b98a62");
+  polig(PELOS[p.pelo].map(function (q) { return [x + q[0] * r, hy + q[1] * r]; }), p.hc, "#000");
+  if (alto > 60) {
+    fx.fillStyle = "#fff"; fx.beginPath(); fx.ellipse(x - r * 0.45, hy + r * 0.15, r * 0.3, r * 0.18, 0, 0, 7); fx.ellipse(x + r * 0.45, hy + r * 0.15, r * 0.3, r * 0.18, 0, 0, 7); fx.fill();
+    fx.fillStyle = "#111"; fx.beginPath(); fx.arc(x - r * 0.45, hy + r * 0.15, r * 0.12, 0, 7); fx.arc(x + r * 0.45, hy + r * 0.15, r * 0.12, 0, 7); fx.fill();
+    fx.strokeStyle = "#111"; fx.lineWidth = Math.max(1, r * 0.16); fx.beginPath();
+    fx.moveTo(x - r * 0.85, hy - r * 0.25); fx.lineTo(x - r * 0.15, hy + r * 0.0); fx.moveTo(x + r * 0.85, hy - r * 0.25); fx.lineTo(x + r * 0.15, hy + r * 0.0);
+    fx.moveTo(x - r * 0.2, hy + r * 0.75); fx.lineTo(x + r * 0.2, hy + r * 0.75); fx.stroke();
+  }
+}
+
+function dibujarFondo(ts, estatico) {
+  const t = ts / 1000, dt = Math.min(0.05, Math.max(0, t - tPrev)); tPrev = t;
+  if (!estatico) { actualizar(dt); }
+  mover(t);
+  fx.save(); fx.translate(W / 2, H / 2); fx.rotate(Math.sin(t * 4) * 0.008); fx.scale(1.05, 1.05); fx.translate(-W / 2, -H / 2);
+  const cielo = fx.createLinearGradient(0, 0, 0, H * 0.6); cielo.addColorStop(0, "#02060f"); cielo.addColorStop(1, "#14305e");
+  fx.fillStyle = cielo; fx.fillRect(-W, -H, W * 3, H * 3);
+  poli([[-LX - 10, 0, -LZ - 10], [LX + 10, 0, -LZ - 10], [LX + 10, 0, LZ + 10], [-LX - 10, 0, LZ + 10]], "#0f4f26");
+  for (let i = 0; i < 15; i++) { const z0 = -LZ + i * (2 * LZ / 15), z1 = z0 + 2 * LZ / 15; poli([[-LX - 6, 0.01, z0], [LX + 6, 0.01, z0], [LX + 6, 0.01, z1], [-LX - 6, 0.01, z1]], i % 2 ? "#1f7d3a" : "#28934a"); }
+  [0, 1, 2, 3].forEach(function (k) { poli([puntoTribuna(k, 0, 0), puntoTribuna(k, 1, 0), puntoTribuna(k, 1, 1), puntoTribuna(k, 0, 1)], "#140a2e"); });
+  const f = H * 0.95;
+  hinchas.forEach(function (h) {
+    const w = h.w, dx = w[0] - C.x, dz = w[2] - C.z, zr = dx * C.sin + dz * C.cos;
+    if (zr < 3) { return; }
+    const sx = W / 2 + (dx * C.cos - dz * C.sin) / zr * f, sy = H * 0.52 - (w[1] + Math.abs(Math.sin(t * 5 + h.f)) * 0.25 - C.y) / zr * f;
+    if (sx < -30 || sx > W + 30 || sy < -10 || sy > H + 60) { return; }
+    const wp = 0.9 / zr * f;
+    if (wp < 4) { fx.fillStyle = COLS[h.t % 5]; fx.fillRect(sx, sy - wp, Math.max(1.5, wp * 0.6), Math.max(2, wp)); }
+    else { fx.drawImage(SP, h.t * 48, 0, 48, 64, sx - wp / 2, sy - wp * 1.33, wp, wp * 1.33); }
+  });
+  BENGALAS.forEach(function (b, j) {
+    for (let k = 0; k < 6; k++) {
+      const u = ((t * 0.5 + k / 6 + j * 0.2) % 1), p = P(b[0] * (LX + 10), 3 + u * 9, b[1] + (k % 2 ? 1 : -1) * u * 3);
+      if (p[2] < 3) { continue; }
+      const s = S(p), r = (1.5 + u * 5) / p[2] * f; fx.fillStyle = "rgba(" + b[2] + "," + (0.35 * (1 - u)).toFixed(2) + ")"; fx.beginPath(); fx.arc(s[0], s[1], r, 0, 7); fx.fill();
+    }
+  });
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) {
+    const p = P(c[0] * (LX + 22), 36, c[1] * (LZ + 24));
+    if (p[2] < 5) { return; }
+    const s = S(p), r = Math.min(W, 22 / p[2] * f), g = fx.createRadialGradient(s[0], s[1], 0, s[0], s[1], r);
+    g.addColorStop(0, "rgba(255,255,235,.95)"); g.addColorStop(0.15, "rgba(255,255,220,.5)"); g.addColorStop(1, "rgba(255,255,220,0)");
+    fx.fillStyle = g; fx.fillRect(s[0] - r, s[1] - r, r * 2, r * 2);
+  });
+  fx.strokeStyle = "rgba(255,255,255,.85)"; fx.lineWidth = Math.max(1, H * 0.003); fx.beginPath();
+  LIN.forEach(function (l) { seg(l[0], l[1]); }); fx.stroke();
+  fx.strokeStyle = "#fff"; fx.lineWidth = Math.max(2, H * 0.006); fx.beginPath(); ARCO.forEach(function (l) { seg(l[0], l[1]); }); fx.stroke();
+  jug.slice().sort(function (a, b) { return P(b.x, 0, b.z)[2] - P(a.x, 0, a.z)[2]; }).forEach(function (p) { dibujarJugador(p, t); });
+  const pb = P(bola.x, 0.12, bola.z);
+  if (pb[2] > 1) { const s = S(pb), r = Math.max(2, 0.22 / pb[2] * f); fx.fillStyle = "#fff"; fx.beginPath(); fx.arc(s[0], s[1], r, 0, 7); fx.fill(); fx.strokeStyle = "#222"; fx.lineWidth = 1; fx.stroke(); }
+  fx.restore();
+  fx.fillStyle = "rgba(127,208,255,.20)"; fx.fillRect(0, H * 0.955 - Math.abs(Math.sin(t * 8)) * 3, W, H * 0.06);
+  const vi = fx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.95); vi.addColorStop(0, "rgba(0,0,0,0)"); vi.addColorStop(1, "rgba(0,0,0,.6)");
+  fx.fillStyle = vi; fx.fillRect(0, 0, W, H);
+  fx.fillStyle = "rgba(0,8,20,.30)"; fx.fillRect(0, 0, W, H);
+  if (!estatico) { rafId = requestAnimationFrame(dibujarFondo); }
+}
+function iniciarFondo() { cancelAnimationFrame(rafId); if (ajustes.fondo) { rafId = requestAnimationFrame(dibujarFondo); } else { dibujarFondo(0, true); } }
+
+// ===== Avatares animados (personajes originales, estilo anime) =====
+const AV = [
+  { n: "Rayo", piel: "#ffe0c2", pelo: "#ffd23f", ojo: "#2a7de1", est: 0 },
+  { n: "Rulo", piel: "#c98a5a", pelo: "#2b1b14", ojo: "#4a2a12", est: 5 },
+  { n: "Barbas", piel: "#f5c9a0", pelo: "#3b2a1a", ojo: "#1f6f3a", est: 4, ex: "barba", banda: "#fff" },
+  { n: "Crack", piel: "#ffe0c2", pelo: "#e63946", ojo: "#222222", est: 0 },
+  { n: "Muralla", piel: "#8d5a3b", pelo: "#111111", ojo: "#222222", est: 7, ex: "gafas" },
+  { n: "Luna", piel: "#ffe0c2", pelo: "#ff7eb6", ojo: "#8a2be2", est: 3 },
+  { n: "Fénix", piel: "#f5c9a0", pelo: "#c1440e", ojo: "#1d7a5a", est: 1 },
+  { n: "Brisa", piel: "#d9a066", pelo: "#1fb5a8", ojo: "#124e78", est: 2 }
+];
+const CAMISETAS = [["#7fd0ff", "#fff"], ["#d62828", "#fff"], ["#2e9e4f", "#ffd23f"], ["#14285e", "#ff8c1a"], ["#222", "#fff"], ["#7b2cbf", "#fff"], ["#ff8c1a", "#fff"], ["#7fd0ff", "#fff"]];
+function avatarSVG(a) {
+  const P = a.pelo, i = AV.indexOf(a), cam = CAMISETAS[i];
+  const FR = '<path d="M22 50Q23 19 50 19Q77 19 78 50Q64 33 50 38Q36 33 22 50Z" fill="' + P + '"/>';
+  const atras = ["", '<path d="M19 52Q12 104 28 114L72 114Q88 104 81 52Z" fill="' + P + '"/>', '<path d="M74 40Q98 44 92 84Q84 62 72 56Z" fill="' + P + '"/><circle cx="76" cy="42" r="4" fill="#fff"/>',
+    '<path d="M24 44Q2 56 12 92Q22 70 28 58Z" fill="' + P + '"/><path d="M76 44Q98 56 88 92Q78 70 72 58Z" fill="' + P + '"/>', "", '<circle cx="50" cy="38" r="37" fill="' + P + '"/>', "", ""][a.est];
+  const frente = [
+    '<path d="M21 48L25 20L36 34L42 12L50 32L60 10L64 34L75 20L79 48Q50 30 21 48Z" fill="' + P + '"/>', FR, FR, FR,
+    '<path d="M23 44Q26 21 50 21Q74 21 77 44Q50 31 23 44Z" fill="' + P + '"/><rect x="22" y="37" width="56" height="7" rx="3" fill="' + (a.banda || "#fff") + '"/>', FR, "",
+    '<path d="M23 46Q25 22 50 22Q75 22 77 46Q50 34 23 46Z" fill="' + P + '"/>'][a.est];
+  const ojo = function (x) { return '<ellipse cx="' + x + '" cy="52" rx="7" ry="9" fill="#fff"/><ellipse cx="' + x + '" cy="54" rx="4.6" ry="6.6" fill="' + a.ojo + '"/><circle cx="' + (x - 1.6) + '" cy="51" r="2" fill="#fff"/>'; };
+  const extra = a.ex === "barba" ? '<path d="M30 62Q50 92 70 62Q50 76 30 62Z" fill="' + P + '" opacity=".9"/>' :
+    (a.ex === "gafas" ? '<circle cx="39" cy="53" r="10" fill="none" stroke="#222" stroke-width="2"/><circle cx="61" cy="53" r="10" fill="none" stroke="#222" stroke-width="2"/><path d="M49 53h2" stroke="#222" stroke-width="2"/>' : "");
+  return '<svg viewBox="0 0 100 120" class="av"><g class="bob"><rect x="20" y="84" width="60" height="42" rx="16" fill="' + cam[0] + '"/><rect x="40" y="84" width="20" height="9" rx="4" fill="' + cam[1] + '"/>' +
+    '<rect x="43" y="72" width="14" height="16" rx="6" fill="' + a.piel + '"/><g class="pelo">' + atras + '</g><ellipse cx="50" cy="50" rx="27" ry="29" fill="' + a.piel + '"/><g class="pelo">' + frente + '</g>' +
+    '<g class="ojos">' + ojo(39) + ojo(61) + '</g>' + extra + '<ellipse cx="30" cy="64" rx="5" ry="3" fill="#ff9aa2" opacity=".5"/><ellipse cx="70" cy="64" rx="5" ry="3" fill="#ff9aa2" opacity=".5"/>' +
+    '<path d="M44 68Q50 74 56 68" stroke="#7a3b2e" fill="none" stroke-width="2" stroke-linecap="round"/></g></svg>';
+}
+function dibujarChip() {
+  const img = perfil.foto ? '<img class="fotoChip" src="' + perfil.foto + '" alt="">' : avatarSVG(AV[perfil.avatar | 0] || AV[0]);
+  el("chip").innerHTML = img + "<span>" + esc(perfil.nombre || L().jugadorDef) + "</span>";
+}
+// ===== Creador de personaje =====
+let borrador = null, visorPerfil = null, primeraVez = false;
+function svgSimple(p) {                         // vista simple si el aparato no puede mostrar 3D
+  const kit = Per3D_OK() ? Per3D.CAMISAS[p.camisa | 0] : { base: "#7fd0ff" }, piel = PIELES2[p.piel | 0], pelo = COLORES2[p.colPelo | 0];
+  return '<svg viewBox="0 0 100 130"><rect x="22" y="78" width="56" height="48" rx="14" fill="' + kit.base + '"/><text x="50" y="112" text-anchor="middle" font-size="22" font-weight="900" fill="#fff">' + esc(p.dorsal) + '</text><ellipse cx="50" cy="50" rx="24" ry="27" fill="' + piel + '"/><path d="M26 46Q28 20 50 20Q72 20 74 46Q50 34 26 46Z" fill="' + pelo + '"/><text x="50" y="14" text-anchor="middle" font-size="9" fill="#fff">' + esc(p.nombre) + '</text></svg>';
+}
+const PIELES2 = ["#ffe0c2", "#f1c27d", "#d9a066", "#a8693f", "#6b4129"], COLORES2 = ["#0b0b0b", "#3b2417", "#6b4226", "#d9b24c", "#b5441f", "#a8a8a8", "#2a6fdb", "#e754a9"];
+function Per3D_OK() { return typeof Per3D !== "undefined" && PENAL3D_OK; }
+function abrirPerfil() {
+  primeraVez = !perfil.creado;
+  borrador = { nombre: perfil.nombre || "", dorsal: perfil.dorsal, piel: perfil.piel, pelo: perfil.pelo, colPelo: perfil.colPelo, barba: perfil.barba, colBarba: perfil.colBarba, camisa: perfil.camisa };
+  el("msgPerfil").textContent = "";
+  el("tituloPerfil").dataset.i = primeraVez ? "creaTitulo" : "miPerfil"; el("tituloPerfil").textContent = L()[el("tituloPerfil").dataset.i];
+  el("btnVolverPerfil").style.display = primeraVez ? "none" : ""; el("btnBorrarPerfil").style.display = primeraVez ? "none" : "";
+  if (Per3D_OK()) {
+    el("cvCreador").style.display = ""; el("visor2d").style.display = "none";
+    try { if (!visorPerfil) { visorPerfil = Per3D.vistaPrevia(el("cvCreador")); } else { visorPerfil.reanudar(); } visorPerfil.medir(); }
+    catch (e) { visorPerfil = null; el("cvCreador").style.display = "none"; el("visor2d").style.display = "block"; }
+  } else { el("cvCreador").style.display = "none"; el("visor2d").style.display = "block"; }
+  dibujarPerfil(); refrescarVisor();
+}
+function irJuego() { abrirFormaciones(); }
+function borrarUsuario() {
+  if (!confirm(L().confirmarBorrar)) { return; }
+  try { localStorage.removeItem("rfd_perfil"); } catch (e) {}
+  Object.assign(perfil, { nombre: "", avatar: 0, dorsal: 10, piel: 1, pelo: 1, colPelo: 0, barba: 0, colBarba: 0, camisa: 0, creado: false, foto: "" });
+  abrirPerfil();
+}
+function salirPerfil() { if (visorPerfil) { visorPerfil.detener(); } ir("menu"); }
+function refrescarVisor() {
+  if (visorPerfil) { visorPerfil.poner(borrador); } else { el("visor2d").innerHTML = svgSimple(borrador); }
+}
+function elegir(campo, v) { borrador[campo] = v; dibujarPerfil(); refrescarVisor(); }
+function dibujarPerfil() {
+  const d = L(), sw = function (campo, lista, cur) {
+    return '<div class="fila">' + lista.map(function (c, i) { return '<button class="sw' + (cur === i ? " sel" : "") + '" style="background:' + c + '" onclick="elegir(\'' + campo + "'," + i + ')" aria-label="' + (i + 1) + '"></button>'; }).join("") + "</div>";
+  }, ob = function (campo, nombres, cur) {
+    return '<div class="fila">' + nombres.map(function (n, i) { return '<button class="ob' + (cur === i ? " sel" : "") + '" onclick="elegir(\'' + campo + "'," + i + ')">' + esc(n) + "</button>"; }).join("") + "</div>";
+  };
+  let kits = '<div class="fila">';
+  for (let i = 0; i < 4; i++) { kits += '<button class="kit' + (borrador.camisa === i ? " sel" : "") + '" onclick="elegir(\'camisa\',' + i + ')"><canvas width="92" height="56" id="kit' + i + '"></canvas>' + esc(d.camisetas[i]) + "</button>"; }
+  kits += "</div>";
+  const tieneFoco = document.activeElement && document.activeElement.id;
+  el("opcionesCreador").innerHTML =
+    '<h4>' + d.nombreUsuario + '</h4><input type="text" id="inpNombre" maxlength="12" value="' + esc(borrador.nombre) + '" oninput="borrador.nombre=this.value;refrescarVisor()">' +
+    '<h4>' + d.dorsal + '</h4><input type="number" id="inpDorsal" min="1" max="99" value="' + borrador.dorsal + '" oninput="cambiarDorsal(this.value)">' +
+    "<h4>" + d.piel + "</h4>" + sw("piel", PIELES2, borrador.piel) +
+    "<h4>" + d.peinado + "</h4>" + ob("pelo", d.peinados, borrador.pelo) +
+    "<h4>" + d.colorPelo + "</h4>" + sw("colPelo", COLORES2, borrador.colPelo) +
+    "<h4>" + d.barba + "</h4>" + ob("barba", d.barbas, borrador.barba) +
+    (borrador.barba ? "<h4>" + d.colorBarba + "</h4>" + sw("colBarba", COLORES2, borrador.colBarba) : "") +
+    "<h4>" + d.camiseta + "</h4>" + kits;
+  if (Per3D_OK()) {
+    for (let i = 0; i < 4; i++) { const cv = el("kit" + i); if (cv) { try { Per3D.dibujarMiniatura(cv, i); } catch (e) {} } }
+  }
+  if (tieneFoco === "inpNombre" || tieneFoco === "inpDorsal") { const f = el(tieneFoco); if (f) { f.focus(); } }
+}
+function cambiarDorsal(v) { const n = Math.max(1, Math.min(99, parseInt(v, 10) || 0)); borrador.dorsal = n || 1; refrescarVisor(); }
+function guardarPerfil() {
+  const nom = (borrador.nombre || "").trim().slice(0, 12);
+  if (!nom) { el("msgPerfil").textContent = L().nombreObligatorio; el("inpNombre").focus(); return; }
+  borrador.nombre = nom;
+  Object.assign(perfil, borrador, { creado: true });
+  if (visorPerfil) { visorPerfil.poner(borrador); perfil.foto = visorPerfil.foto() || ""; visorPerfil.detener(); } else { perfil.foto = ""; }
+  guardar("rfd_perfil", perfil);
+  ir("menu");
+}
+function limpiarPartida() {
+  slots = []; slotActivo = null; fase = 0; sel = {}; girando = false;
+  el("zonaRuleta").style.display = "none"; el("juego").style.display = "none"; el("inicio").style.display = "none";
+  el("presentacion").classList.remove("visible"); el("aviso").textContent = L().tocaPuesto;
+}
+function reiniciarSeleccion() {
+  if (girando || !slots.length) { return; }
+  const f = el("selForm").value; limpiarPartida(); el("selForm").value = f; empezar();
+}
+function finalizarPartida() {
+  const total = slots.reduce(function (s, x) { return s + x.jugador.nivel; }, 0);
+  const reg = { nombre: perfil.nombre || L().jugadorDef, total: total, formacion: el("selForm").value, fecha: new Date().toLocaleDateString(),
+    equipo: slots.map(function (s) { return [s.jugador.nombre, s.jugador.nivel, s.pos]; }) };
+  let lista = leer("rfd_records", []);
+  lista.push(reg); lista.sort(function (a, b) { return b.total - a.total; });
+  const pos = lista.indexOf(reg) + 1;
+  let msg = L().nivelTotal + ": " + total + " — ";
+  if (pos <= 10) { guardar("rfd_records", lista.slice(0, 10)); msg += L().entraste + " " + pos; } else { msg += L().noEntraste; }
+  el("finTxt").textContent = msg; el("fin").classList.add("visible");
+  let fiesta = false;
+  try { if (Per3D_OK() && typeof Fiesta3D !== "undefined") { fiesta = !!Fiesta3D.iniciar(el("cvFiesta"), perfil); } } catch (e) { fiesta = false; }
+  el("cvFiesta").style.display = fiesta ? "block" : "none";
+  contarPuntos(total);
+}
+let _cuenta = 0;
+function contarPuntos(total) {
+  const e = el("finPuntos"); const t0 = performance.now(); const id = ++_cuenta;
+  (function paso(t) {
+    if (id !== _cuenta) { return; }
+    const k = Math.min(1, (t - t0) / 2200); e.textContent = Math.round(total * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) { requestAnimationFrame(paso); }
+  })(performance.now());
+}
+function cerrarFin() { _cuenta++; try { if (typeof Fiesta3D !== "undefined") { Fiesta3D.detener(); } } catch (e) {} el("fin").classList.remove("visible"); }
+function dibujarRecords() {
+  const l = leer("rfd_records", []);
+  if (!l.length) { el("tablaRecords").innerHTML = "<p>" + L().sinRecords + "</p>"; return; }
+  el("tablaRecords").innerHTML = l.map(function (r, i) {
+    return "<details><summary><b>#" + (i + 1) + "</b> " + esc(r.nombre) + " — <b>" + r.total + "</b> <small>(" + r.formacion + ", " + esc(r.fecha) + ")</small></summary><ol>" +
+      r.equipo.map(function (p) { return "<li>" + esc(p[0]) + " (" + L().pos[p[2]] + ") " + p[1] + "</li>"; }).join("") + "</ol></details>";
+  }).join("");
+}
+
+// ===== Selector de formación en 3D (cilindro que gira de lado a lado) =====
+const NOMBRES_FORM = Object.keys(FORMACIONES), PASO = 360 / NOMBRES_FORM.length, RADIO = 300;
+let angForm = 0, idxForm = 0, girandoForm = false;
+function miniCancha(f) {
+  let c = "";
+  FORMACIONES[f].forEach(function (s) { c += '<circle cx="' + s[1] + '" cy="' + (s[2] * 1.3) + '" r="5.5" fill="#ffd700" stroke="#fff" stroke-width="1.5"/>'; });
+  return '<svg viewBox="0 0 100 130"><rect width="100" height="130" rx="6" fill="#1d7a3a"/><g stroke="#fff" stroke-width="1.2" fill="none" opacity=".8"><rect x="3" y="3" width="94" height="124"/><path d="M3 65H97"/><circle cx="50" cy="65" r="12"/><rect x="25" y="3" width="50" height="20"/><rect x="25" y="107" width="50" height="20"/></g>' + c + "</svg>";
+}
+function armarCarrusel() {
+  el("cilindro").innerHTML = NOMBRES_FORM.map(function (f, i) {
+    return '<div class="carta3d" style="transform:rotateY(' + (i * PASO) + "deg) translateZ(" + RADIO + 'px)">' + miniCancha(f) + "<b>" + f + "</b></div>";
+  }).join("");
+  moverCilindro(0.1);
+}
+function moverCilindro(seg) {
+  const c = el("cilindro");
+  c.style.transition = "transform " + seg + "s cubic-bezier(.12,.75,.12,1)";
+  c.style.transform = "translateZ(-" + RADIO + "px) rotateY(" + (-angForm) + "deg)";
+  el("formNombre").textContent = NOMBRES_FORM[idxForm];
+}
+let formSorteada = false;
+function girarFormaciones(pot) {
+  girandoForm = true;
+  const dest = Math.floor(Math.random() * NOMBRES_FORM.length), falta = (((dest * PASO - angForm) % 360) + 360) % 360, seg = 4 + 4 * pot;
+  angForm += 360 * (3 + Math.round(9 * pot)) + falta; idxForm = dest; moverCilindro(seg); el("formNombre").textContent = "...";
+  setTimeout(function () { girandoForm = false; formSorteada = true; el("btnEmpezar").disabled = false; el("formNombre").textContent = NOMBRES_FORM[idxForm]; }, seg * 1000 + 200);
+}
+function abrirFormaciones() { formSorteada = false; el("btnEmpezar").disabled = true; el("selFormacion").classList.add("visible"); if (!el("cilindro").children.length) { armarCarrusel(); } PT2.reiniciar(); }
+function cerrarFormaciones() { if (!girandoForm) { PT2.detener(); el("selFormacion").classList.remove("visible"); } }
+function empezarDraft() {
+  if (girandoForm || !formSorteada) { return; }
+  PT2.detener(); el("selFormacion").classList.remove("visible"); el("selForm").value = NOMBRES_FORM[idxForm];
+  limpiarPartida(); ir("pantallaJuego"); empezar();
+}
+function cancelarPuesto() {
+  if (girando || fase > 1) { return; }
+  PT1.detener(); el("zonaRuleta").style.display = "none"; slotActivo = null; fase = 0; sel = {}; el("aviso").textContent = L().tocaPuesto; dibujarCancha();
+}
+
+// ===== Tabla del draft (los 11 jugadores que se van eligiendo) =====
+function claseNivel(n) { return n >= 80 ? "oro" : (n >= 74 ? "plata" : "bronce"); }
+function dibujarTabla() {
+  const d = L(), cont = el("tablaDraft");
+  if (!slots.length) { cont.innerHTML = ""; return; }
+  let tot = 0;
+  let h = '<div class="tdTit">' + d.draft + '</div><table class="td"><thead><tr><th>#</th><th>' + d.cPos + "</th><th>" + d.cJug + "</th><th>" + d.cEq + "</th><th>" + d.cPais + "</th><th>" + d.cEdad + "</th><th>" + d.cNivel + "</th></tr></thead><tbody>";
+  slots.forEach(function (s, i) {
+    const j = s.jugador, act = i === slotActivo ? " act" : "";
+    if (j) {
+      tot += j.nivel;
+      h += '<tr class="lleno' + act + '"><td>' + (i + 1) + "</td><td>" + s.pos + '</td><td class="nom">' + esc(j.nombre) + "</td><td>" + esc(j.equipo) + "</td><td>" + banderaHTML(j.nacionalidad) + esc(j.nacionalidad) + "</td><td>" + j.edad + '</td><td><span class="ins ' + claseNivel(j.nivel) + '">' + j.nivel + "</span></td></tr>";
+    } else {
+      h += '<tr class="vacio' + act + '"><td>' + (i + 1) + "</td><td>" + s.pos + '</td><td colspan="5">' + POS[s.pos] + "</td></tr>";
+    }
+  });
+  cont.innerHTML = h + '</tbody><tfoot><tr><td colspan="6">' + d.nivelTotal + "</td><td>" + tot + "</td></tr></tfoot></table>";
+}
+
+// ===== Ruleta 3D (cilindro) para liga, equipo, nacionalidad y jugador =====
+const PAL = [["#0b5d3b", "#06301f"], ["#12306e", "#0a1a3d"], ["#7a1020", "#3d0710"], ["#0e5f6a", "#06323a"], ["#5a2d82", "#2d1642"], ["#8a5a00", "#432b00"]];
+let angReel = 0, RR = 0;
+const _cm = document.createElement("canvas").getContext("2d");
+// Tamaño de letra: nunca mayor al que cabe la palabra más larga entera en una sola línea (sin cortar palabras)
+function tamanoNombre(txt, cw) {
+  const disp = cw - 8 - 20 - 6, len = txt.length;
+  let fs = cw * (len <= 9 ? 0.16 : (len <= 15 ? 0.125 : (len <= 22 ? 0.1 : 0.085)));
+  _cm.font = '900 100px "Palatino Linotype", "Book Antiqua", Georgia, serif';
+  txt.toUpperCase().split(/\s+/).forEach(function (w) {
+    const ancho = (_cm.measureText(w).width + 4 * w.length) * 1.04;   // incluye el espaciado entre letras
+    fs = Math.min(fs, disp * 100 / ancho);
+  });
+  return Math.max(9, Math.floor(fs));
+}
+function dibujarRuleta() {
+  const z = el("zonaRuleta"), n = lista.length, cw = Math.round(Math.min(300, innerWidth * 0.46, innerHeight * 0.38)), ch = Math.round(cw * 1.38);
+  z.classList.remove("sale", "ganando");
+  z.style.setProperty("--cw", cw + "px"); z.style.setProperty("--chh", ch + "px");
+  RR = n > 1 ? Math.max(cw * 0.9, n * cw * 1.1 / (2 * Math.PI)) : 0;
+  const paso = 360 / n, tipo = NOMBRE_FASE[fase - 1];
+  el("cil3d").innerHTML = lista.map(function (txt, i) {
+    const fs = tamanoNombre(txt, cw), cod = BANDERAS[txt];
+    const adorno = cod ? '<span class="fl"><img src="img/flags/' + cod + '.svg" alt=""></span>' : '<span class="bl">⚽</span>';
+    return '<div class="cr" style="transform:rotateY(' + (i * paso) + "deg) translateZ(" + RR + "px);background:linear-gradient(160deg," + PAL[i % 6][0] + "," + PAL[i % 6][1] + ')"><span class="tp">' + esc(tipo) + '</span>' + adorno + '<span class="nm" style="font-size:' + fs + 'px">' + esc(txt) + "</span></div>";
+  }).join("");
+  angReel = 0; poner(0, 0);
+  el("escenaReel").classList.add("tenue"); PT1.reiniciar();
+}
+function poner(a, v) {
+  el("cil3d").style.transform = "translateZ(-" + RR + "px) rotateY(" + (-a) + "deg)";
+  const z = el("zonaRuleta"); z.style.setProperty("--v", v.toFixed(3)); z.style.setProperty("--giro", (a * 2) + "deg");
+}
+function girar(pot) {                 // pot: fuerza de la patada de 0 a 1 (el ganador siempre es al azar)
+  girando = true;
+  const n = lista.length, paso = 360 / n, ganador = Math.floor(Math.random() * n);
+  const falta = (((ganador * paso - angReel) % 360) + 360) % 360, desde = angReel, total = 360 * (3 + Math.round(9 * pot)) + falta, dur = 4000 + 4000 * pot;
+  let t0 = 0, prev = desde, tp = 0;
+  function cuadro(ts) {
+    if (!t0) { t0 = ts; tp = ts; }
+    const p = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - p, 3.4), a = desde + total * e, dt = Math.max(1, ts - tp);
+    const vel = Math.abs(a - prev) / dt * 1000; prev = a; tp = ts; angReel = a;
+    poner(a, Math.min(1, vel / 1100));
+    if (p < 1) { requestAnimationFrame(cuadro); } else { terminarGiro(ganador); }
+  }
+  requestAnimationFrame(cuadro);
+}
+function terminarGiro(ganador) {
+  poner(angReel, 0);
+  const z = el("zonaRuleta"); z.classList.add("ganando"); el("cil3d").children[ganador].classList.add("gan");
+  setTimeout(function () { girando = false; z.classList.add("sale"); mostrarResultado(lista[ganador]); }, 1100);   // la ruleta se desvanece
+}
+function crecerJuego() { const j = el("juego"); j.classList.remove("crece"); void j.offsetWidth; j.classList.add("crece"); }
+
+// ===== Patadas: una por ruleta de fases y otra para las formaciones =====
+const PT1 = PatadaAuto(el("cvPatada1"), el("botonGirar"), el("relleno1"), function (p) { el("escenaReel").classList.remove("tenue"); girar(p); }, function () { girando = true; }, el("zonaRuleta"));
+const PT2 = PatadaAuto(el("cvPatada2"), el("btnGirarForm"), el("relleno2"), function (p) { girarFormaciones(p); }, function () { girandoForm = true; }, el("selFormacion"));
+// ===== Arranque =====
+ajustarFondo(); iniciarFondo(); aplicarIdioma();
+</script>
+</body>
+</html>
