@@ -14,10 +14,19 @@ const MT = {
 };
 ["es", "en", "pt", "it"].forEach(function (l) { Object.assign(TT[l], MT[l]); });
 
+const MT2 = {
+  es: { volverSala: "VOLVER A TU SALA", compartir: "Compartir", invitacion: "¡Vení a jugar conmigo a ROMMEE FUTBOL DRAFT! Sala: {c}", ausente: "sin conexión", hayAusentes: "Esperá a que vuelvan los jugadores sin conexión" },
+  en: { volverSala: "BACK TO YOUR ROOM", compartir: "Share", invitacion: "Come play ROMMEE FUTBOL DRAFT with me! Room: {c}", ausente: "offline", hayAusentes: "Wait for the offline players to come back" },
+  pt: { volverSala: "VOLTAR PARA SUA SALA", compartir: "Compartilhar", invitacion: "Venha jogar ROMMEE FUTBOL DRAFT comigo! Sala: {c}", ausente: "sem conexão", hayAusentes: "Espere os jogadores sem conexão voltarem" },
+  it: { volverSala: "TORNA ALLA TUA STANZA", compartir: "Condividi", invitacion: "Vieni a giocare a ROMMEE FUTBOL DRAFT con me! Stanza: {c}", ausente: "offline", hayAusentes: "Aspetta che i giocatori offline tornino" }
+};
+["es", "en", "pt", "it"].forEach(function (l) { Object.assign(TT[l], MT2[l]); });
+
 const Multi = (function () {
-  const DUR_TURNO = 90000, MAX = 4, GIRO_MS = 4000, VER_RES_MS = 2400, VER_ORDEN_MS = 3500, LETRAS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const S = { activo: false, codigo: null, uid: null, host: false, v: null, off: [], camOrig: null, estadoVisto: "", nroLocal: 0, timer: 0, hostBusy: "", cargando: false, jugando: false, termino: false };
-  let monAnim = "";
+  const DUR_TURNO = 90000, MAX = 4, GRACIA = 600000, GIRO_MS = 4000, VER_RES_MS = 2400, VER_ORDEN_MS = 3500, LETRAS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const S = { activo: false, codigo: null, uid: null, host: false, v: null, off: [], camOrig: null, estadoVisto: "", nroLocal: 0, timer: 0, hostBusy: "", vig: 0, cargando: false, jugando: false, termino: false };
+  let monAnim = "", pend = null;
+  const LS = "rommee_sala";
 
   function t(k) { return L()[k] || k; }
   function $(id) { return document.getElementById(id); }
@@ -86,8 +95,61 @@ const Multi = (function () {
   function limpiarTimer() { clearInterval(S.timer); S.timer = 0; }
   function mini(cv, k) { if (cv && k >= 0 && typeof Per3D_OK === "function" && Per3D_OK()) { try { Per3D.dibujarMiniatura(cv, k); } catch (e) {} } }
 
+  // ---------- sala recordada (para "Volver a tu sala") ----------
+  function guardarSala() { try { localStorage.setItem(LS, JSON.stringify({ c: S.codigo, t: Date.now() })); } catch (e) {} }
+  function olvidarSala() { try { localStorage.removeItem(LS); } catch (e) {} }
+  function salaGuardada() { try { const o = JSON.parse(localStorage.getItem(LS)); if (o && o.c && Date.now() - o.t < 3 * 3600000) { return o; } } catch (e) {} return null; }
+  function mostrarVolver() { const b = $("btnVolverSala"), g = salaGuardada(); if (b) { b.style.display = g ? "block" : "none"; if (g) { b.textContent = t("volverSala") + " (" + g.c + ")"; } } }
+  // El creador lleva más de GRACIA ausente (sala de espera): la sala se considera abandonada
+  function creadorVencido(v) { const c = v && v.jug && v.jug[v.creador]; return !!(c && c.on === false && c.vis && Red.ahora() - c.vis > GRACIA); }
+  // Marca "estoy acá" y deja preparado el aviso automático "se me cortó la conexión" (no borra nada: solo marca ausente)
+  function presencia() {
+    if (!S.activo || !S.codigo) { return; }
+    const p = ruta("jug/" + S.uid);
+    Red.get(p).then(function (x) {
+      if (!x || !S.activo) { return; }
+      Red.update(p, { on: true }).catch(function () {});
+      Red.alDesconectar(p + "/on", false).catch(function () {});
+      Red.alDesconectar(p + "/vis", Red.TS()).catch(function () {});
+    }).catch(function () {});
+  }
+  // Cada 15 s: limpia salas de espera abandonadas y jugadores que llevan mucho ausentes
+  function vigilar() {
+    if (!S.activo || !S.v) { return; }
+    const v = S.v, J = jugs(v), ahora = Red.ahora();
+    if (v.estado === "sala") {
+      if (creadorVencido(v)) { Red.remove("salas/" + S.codigo).catch(function () {}); return; }
+      if (S.host) {
+        ids(v).forEach(function (u) {
+          const j = J[u];
+          if (u !== S.uid && j.on === false && j.vis && ahora - j.vis > GRACIA) {
+            Red.remove(ruta("jug/" + u)).catch(function () {});
+            if (j.cam >= 0) { Red.remove(ruta("camisas/" + j.cam)).catch(function () {}); }
+          }
+        });
+      }
+    } else if (v.estado === "moneda") { hostMoneda(); }
+  }
+  function alVolverVisible() { if (!document.hidden && S.activo) { presencia(); } }
+  document.addEventListener("visibilitychange", alVolverVisible);
+
   // ---------- pantallas del menú ----------
-  function abrir() { limpiarSesion(); ir("multi"); vista("menu"); }
+  function abrir() { limpiarSesion(); ir("multi"); vista("menu"); mostrarVolver(); }
+  function volver() { const g = salaGuardada(); if (!g) { mostrarVolver(); return; } entrarPorCodigo(g.c); }
+  // Enlace de invitación (?sala=CLAVE): entra solo a la sala
+  function invitacionPendiente() { if (!pend) { return; } const c = pend; pend = null; abrir(); $("inpCodigo").value = c; unirse(); }
+  function leerInvitacion() {
+    try {
+      const q = new URLSearchParams(location.search).get("sala");
+      if (q) { pend = q.trim().toUpperCase().slice(0, 5); history.replaceState(null, "", location.href.split(/[?#]/)[0]); if (typeof saltarIntro === "function") { saltarIntro(); } }
+    } catch (e) {}
+  }
+  function enlace() { return location.href.split(/[?#]/)[0] + "?sala=" + S.codigo; }
+  function compartir() {
+    const txt = t("invitacion").replace("{c}", S.codigo), url = enlace();
+    if (navigator.share) { navigator.share({ title: "ROMMEE FUTBOL DRAFT", text: txt, url: url }).catch(function () {}); return; }
+    try { navigator.clipboard.writeText(txt + " " + url); $("btnCompartir").textContent = t("copiado"); } catch (e) {}
+  }
   function verUnirse() { vista("unirse"); $("inpCodigo").value = ""; $("inpCodigo").focus(); }
 
   async function conectar() {
@@ -108,14 +170,14 @@ const Multi = (function () {
       await entrarEnSala();
     } catch (e) { msg(t("errConexion")); } finally { S.cargando = false; }
   }
-  async function unirse() {
+  async function unirse() { const c = ($("inpCodigo").value || "").trim().toUpperCase(); if (c.length < 3) { return; } await entrarPorCodigo(c); }
+  async function entrarPorCodigo(c) {
     if (S.cargando) { return; } S.cargando = true;
     try {
-      const c = ($("inpCodigo").value || "").trim().toUpperCase();
-      if (c.length < 3) { return; }
       if (!(await conectar())) { return; }
       const v = await Red.get("salas/" + c);
-      if (!v || (v.estado !== "sala" && !(v.jug && v.jug[S.uid]))) { msg(t("errSala")); return; }
+      if (v && v.estado === "sala" && creadorVencido(v)) { Red.remove("salas/" + c).catch(function () {}); olvidarSala(); mostrarVolver(); msg(t("errSala")); return; }
+      if (!v || (v.estado !== "sala" && !(v.jug && v.jug[S.uid]))) { olvidarSala(); mostrarVolver(); msg(t("errSala")); return; }
       S.codigo = c; S.host = v.creador === S.uid;
       const r = await Red.transaccion("salas/" + c + "/jug", function (cur) {
         cur = cur || {};
@@ -130,9 +192,10 @@ const Multi = (function () {
   async function entrarEnSala(yaEsta) {
     S.activo = true; S.camOrig = perfil.camisa; S.estadoVisto = ""; S.nroLocal = 0; S.termino = false; S.jugando = false;
     if (!yaEsta) { await Red.set(ruta("jug/" + S.uid), miJug()); }
-    Red.alDesconectar(ruta("jug/" + S.uid)).catch(function () {});               // en la sala de espera, si te vas desaparecés
+    guardarSala();
     S.off.push(Red.on(ruta(), onSala));
-    S.off.push(Red.on(".info/connected", function (c) { if (c && S.activo && S.estadoVisto && S.estadoVisto !== "sala") { Red.update(ruta("jug/" + S.uid), { on: true }).catch(function () {}); } }));
+    S.off.push(Red.on(".info/connected", function (c) { if (c) { presencia(); } }));         // cada vez que se recupera la conexión: "estoy acá" otra vez
+    clearInterval(S.vig); S.vig = setInterval(vigilar, 15000);
     vista("sala");
   }
 
@@ -143,9 +206,6 @@ const Multi = (function () {
     if (!v.jug[S.uid]) { if (v.estado === "sala") { cerrarPorCreador(); } return; }
     S.v = v;
     if (S.estadoVisto !== v.estado) {
-      if (v.estado !== "sala" && S.estadoVisto === "sala") {                          // ya no es la sala de espera: si te caés, solo quedás "desconectado"
-        Red.cancelarDesconexion(ruta("jug/" + S.uid)).then(function () { return Red.alDesconectar(ruta("jug/" + S.uid + "/on"), false); }).catch(function () {});
-      }
       S.estadoVisto = v.estado;
     }
     if (v.estado === "sala") { dibujarSala(); hostSala(); }
@@ -153,22 +213,22 @@ const Multi = (function () {
     else if (v.estado === "juego") { juego(); }
     else if (v.estado === "fin") { fin(); }
   }
-  function cerrarPorCreador() { const m = t("salioSala"); salir(true); ir("multi"); vista("menu"); msg(m); }
+  function cerrarPorCreador() { olvidarSala(); const m = t("salioSala"); salir(true); ir("multi"); vista("menu"); msg(m); }
 
   // ---------- SALA DE ESPERA ----------
   function dibujarSala() {
     if (!S.v || S.estadoVisto !== "sala") { return; }
     vista("sala"); $("msgMulti").textContent = "";
     const v = S.v, J = jugs(), lista = ids(), mias = J[S.uid] || {}, tomadas = v.camisas || {};
-    let h = '<div class="panel" style="text-align:center"><h4>' + t("claveSala") + '</h4><div class="claveBig">' + esc(S.codigo) + '</div><small>' + t("compartiClave") + '</small><br><button id="btnCopiar" onclick="Multi.copiar()">' + t("copiar") + "</button></div>";
+    let h = '<div class="panel" style="text-align:center"><h4>' + t("claveSala") + '</h4><div class="claveBig">' + esc(S.codigo) + '</div><small>' + t("compartiClave") + '</small><br><button id="btnCompartir" class="gb" style="width:auto;padding:8px 18px" onclick="Multi.compartir()">📤 ' + t("compartir") + '</button> <button id="btnCopiar" onclick="Multi.copiar()">' + t("copiar") + "</button></div>";
     h += '<div class="panel"><h4>' + t("jugadoresSala") + " (" + lista.length + "/" + MAX + ")</h4>";
-    lista.forEach(function (u) { const j = J[u]; h += '<div class="jugSala"><canvas width="92" height="56" data-cam="' + (j.cam | 0) + '" data-ok="' + (j.cam >= 0 ? 1 : 0) + '"></canvas><span class="nm">' + esc(j.n) + (u === S.uid ? " (vos)" : "") + '</span><span class="tag">' + (u === v.creador ? "★ " + t("creador") : "") + "</span></div>"; });
+    lista.forEach(function (u) { const j = J[u]; h += '<div class="jugSala"><canvas width="92" height="56" data-cam="' + (j.cam | 0) + '" data-ok="' + (j.cam >= 0 ? 1 : 0) + '"></canvas><span class="nm">' + esc(j.n) + (u === S.uid ? " (vos)" : "") + '</span><span class="tag">' + (u === v.creador ? "★ " + t("creador") + " " : "") + (j.on === false ? "⚠ " + t("ausente") : "") + "</span></div>"; });
     h += "</div>";
     h += '<div class="panel"><h4>' + t("eligeCamiseta") + '</h4><div style="text-align:center">';
     for (let i = 0; i < 4; i++) { const dueno = tomadas[i], ocupada = dueno && dueno !== S.uid; h += '<button class="kitM' + (mias.cam === i ? " sel" : "") + '" ' + (ocupada ? "disabled" : "") + ' onclick="Multi.camisa(' + i + ')"><canvas width="92" height="56" data-kit="' + i + '"></canvas>' + esc(L().camisetas[i]) + "</button>"; }
     h += "</div></div>";
-    const todos = lista.length >= 2 && lista.every(function (u) { return J[u].cam >= 0; });
-    if (S.host) { h += '<button class="gb" ' + (todos ? "" : "disabled") + ' onclick="Multi.comenzar()">' + t("comenzar") + "</button><p>" + (lista.length < 2 ? t("faltanJug") : (!todos ? t("faltanCam") : "")) + "</p>"; }
+    const todos = lista.length >= 2 && lista.every(function (u) { return J[u].cam >= 0 && J[u].on !== false; });
+    if (S.host) { h += '<button class="gb" ' + (todos ? "" : "disabled") + ' onclick="Multi.comenzar()">' + t("comenzar") + "</button><p>" + (lista.length < 2 ? t("faltanJug") : (!todos ? (lista.some(function (u) { return J[u].on === false; }) ? t("hayAusentes") : t("faltanCam")) : "")) + "</p>"; }
     else { h += "<p>" + t("esperaCreador") + "</p>"; }
     h += '<button onclick="Multi.salirBtn()">' + t("salirSala") + "</button>";
     $("mv-sala").innerHTML = h;
@@ -185,13 +245,12 @@ const Multi = (function () {
     if (!r.ok) { return; }
     if (mias.cam >= 0) { Red.remove(ruta("camisas/" + mias.cam)).catch(function () {}); }
     Red.update(ruta("jug/" + S.uid), { cam: i });
-    Red.alDesconectar(ruta("camisas/" + i)).catch(function () {});
   }
   function hostSala() {}
   async function comenzar() {
     if (!S.host) { return; }
     const J = jugs(), lista = ids();
-    if (lista.length < 2 || !lista.every(function (u) { return J[u].cam >= 0; })) { return; }
+    if (lista.length < 2 || !lista.every(function (u) { return J[u].cam >= 0 && J[u].on !== false; })) { return; }
     const up = { estado: "moneda", moneda: { ronda: 1, estado: "elegir", res: "", t0: 0, cand: lista, rest: lista, orden: [], ult: null } };
     lista.forEach(function (u) { up["jug/" + u + "/lado"] = ""; up["jug/" + u + "/listo"] = false; });
     Red.update(ruta(), up);
@@ -243,7 +302,7 @@ const Multi = (function () {
     const v = S.v, m = v.moneda, J = jugs(); if (!m) { return; }
     // quien se desconectó sale del sorteo
     const idsAct = ids().filter(function (u) { return J[u].act !== false; });
-    const caidos = idsAct.filter(function (u) { return J[u].on === false; });
+    const caidos = idsAct.filter(function (u) { return J[u].on === false && (!J[u].vis || Red.ahora() - J[u].vis > 45000); });
     if (caidos.length && m.estado === "elegir") {
       const up = {}; caidos.forEach(function (u) { up["jug/" + u + "/act"] = false; });
       const quedan = function (a) { return (a || []).filter(function (u) { return caidos.indexOf(u) < 0; }); };
@@ -300,6 +359,11 @@ const Multi = (function () {
     if (!S.jugando) {
       S.jugando = true; limpiarPartida(); if (mia && mia.cam >= 0) { perfil.camisa = mia.cam; }
       el("selForm").value = jv.form; ir("pantallaJuego"); empezar();
+      eqLista(mia).forEach(function (e) {                                              // si volvés a la partida, recupero tu equipo
+        const d = e[1], jg = JUGADORES.filter(function (x) { return x.nombre === d.nombre && x.equipo === d.equipo; })[0] || { nombre: d.nombre, equipo: d.equipo, nivel: d.nivel, nacionalidad: d.nac, edad: 0 };
+        if (slots[e[0]]) { slots[e[0]].jugador = jg; }
+      });
+      dibujarCancha();
       $("btnReiniciar").style.display = "none";
       S.timer = setInterval(tic, 250);
     }
@@ -402,13 +466,13 @@ const Multi = (function () {
 
   function expulsadoYo() {
     if (S.termino) { return; }
-    const m = t("expulsado"); salir(true); ir("menu"); setTimeout(function () { alert(m); }, 100);
+    olvidarSala(); const m = t("expulsado"); salir(true); ir("menu"); setTimeout(function () { alert(m); }, 100);
   }
 
   // ---------- FINAL ----------
   function fin() {
     if (S.termino) { return; }
-    S.termino = true; limpiarTimer(); eEsp.style.display = "none"; eTurno.style.display = "none";
+    S.termino = true; olvidarSala(); limpiarTimer(); eEsp.style.display = "none"; eTurno.style.display = "none";
     try { PT1.detener(); } catch (e) {}
     const J = jugs(), lista = ids().map(function (u) { return { u: u, j: J[u], tot: totalEq(J[u]), fuera: J[u].act === false }; })
       .sort(function (a, b) { return (a.fuera - b.fuera) || (b.tot - a.tot); });
@@ -422,7 +486,8 @@ const Multi = (function () {
 
   // ---------- salir / limpiar ----------
   function limpiarSesion() {
-    S.off.forEach(function (f) { try { f(); } catch (e) {} }); S.off = []; limpiarTimer();
+    if (S.codigo && S.uid) { try { Red.cancelarDesconexion(ruta("jug/" + S.uid)).catch(function () {}); } catch (e) {} }
+    S.off.forEach(function (f) { try { f(); } catch (e) {} }); S.off = []; limpiarTimer(); clearInterval(S.vig); S.vig = 0;
     if (S.camOrig !== null && S.camOrig !== undefined) { perfil.camisa = S.camOrig; S.camOrig = null; }
     S.activo = false; S.codigo = null; S.host = false; S.v = null; S.estadoVisto = ""; S.nroLocal = 0; S.hostBusy = ""; S.jugando = false; S.termino = false;
     eEsp.style.display = "none"; eTurno.style.display = "none"; eFin.style.display = "none";
@@ -432,6 +497,7 @@ const Multi = (function () {
   }
   // quedarse o irse; "silencioso" = ya no hace falta avisar a la sala
   function salir(silencioso) {
+    if (!silencioso) { olvidarSala(); }
     const c = S.codigo, u = S.uid, estado = S.estadoVisto, host = S.host, v = S.v;
     if (S.activo && c && !silencioso) {
       try {
@@ -452,9 +518,10 @@ const Multi = (function () {
     salir(false); limpiarPartida(); ir("menu");
   }
 
-  return { abrir: abrir, verUnirse: verUnirse, crear: crear, unirse: unirse, camisa: camisa, copiar: copiar, comenzar: comenzar, lado: lado, listo: listo, salirBtn: salirBtn, salir: salir,
+  return { leer: leerInvitacion, volver: volver, compartir: compartir, invitacionPendiente: invitacionPendiente, abrir: abrir, verUnirse: verUnirse, crear: crear, unirse: unirse, camisa: camisa, copiar: copiar, comenzar: comenzar, lado: lado, listo: listo, salirBtn: salirBtn, salir: salir,
     reportar: reportar, reportarCarta: reportarCarta, usado: usado, alSumar: alSumar, alQuitar: alQuitar, completo: completo, miTurno: miTurno,
     get activo() { return S.activo && S.jugando; }, _S: S };
 })();
 window.Multi = Multi;
 aplicarIdioma();
+Multi.leer();

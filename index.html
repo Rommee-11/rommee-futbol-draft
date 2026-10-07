@@ -276,6 +276,7 @@ canvas.cvPatada.gl { z-index: -1; }
   <h2 data-i="multijugador"></h2>
   <p id="msgMulti" style="color:#ffd23f;min-height:22px"></p>
   <div id="mv-menu" class="mvista">
+    <button class="gb" id="btnVolverSala" style="display:none" onclick="Multi.volver()"></button>
     <button class="gb" data-i="crearSala" onclick="Multi.crear()"></button>
     <button class="gb" data-i="unirseSala" onclick="Multi.verUnirse()"></button>
     <button onclick="ir('menu')" data-i="volver"></button>
@@ -740,7 +741,7 @@ function ir(id) {
   if (id === "records") { dibujarRecords(); }
   if (id === "perfil") { abrirPerfil(); } else if (visorPerfil) { visorPerfil.detener(); }
   if (id === "opciones") { cargarOpciones(); }
-  if (id === "menu") { dibujarChip(); }
+  if (id === "menu") { dibujarChip(); if (window.Multi) { Multi.invitacionPendiente(); } }
 }
 function entrarMenu() { if (perfil.creado) { ir("menu"); } else { ir("perfil"); } }   // la primera vez en cada aparato: crear el personaje
 const tIntro = setTimeout(entrarMenu, 5500);
