@@ -122,8 +122,8 @@ const Per3D = (function () {
     const gorro = function (th, ry) { const pe = new T.Mesh(new T.SphereGeometry(0.158, 20, 14, 0, 6.3, 0, th), negro); pe.position.y = 0.012; pe.rotation.x = ry || -0.18; cabeza.add(pe); };
     const ps = o.peloEstilo == null ? 1 : o.peloEstilo;
     if (ps === 0) {                                                  // afro
-      add(new T.SphereGeometry(0.215, 20, 16), 0, 0.075, -0.035);
-      for (let i = 0; i < 26; i++) { const a = i * 2.4, b = Math.acos(1 - (i + 0.5) / 26 * 1.1), r = 0.205; add(new T.SphereGeometry(0.06, 8, 6), Math.sin(b) * Math.cos(a) * r, 0.075 + Math.cos(b) * r, -0.035 + Math.sin(b) * Math.sin(a) * r * 0.9); }
+      add(new T.SphereGeometry(0.2, 20, 16), 0, 0.1, -0.09);
+      for (let i = 0; i < 26; i++) { const a = i * 2.4, b = Math.acos(1 - (i + 0.5) / 26 * 1.1), r = 0.195; add(new T.SphereGeometry(0.058, 8, 6), Math.sin(b) * Math.cos(a) * r, 0.1 + Math.cos(b) * r, -0.09 + Math.sin(b) * Math.sin(a) * r * 0.9); }
     } else if (ps === 1) { gorro(1.25); }                            // corto
     else if (ps === 2) { gorro(1.25); add(new T.BoxGeometry(0.27, 0.05, 0.07), 0, 0.105, 0.125).rotation.x = 0.35; }   // flequillo
     else if (ps === 3) {                                             // mohicano
@@ -139,6 +139,11 @@ const Per3D = (function () {
       for (let i = 0; i < 22; i++) { const a = i * 2.4, b = Math.acos(1 - (i + 0.5) / 22 * 0.95), r = 0.165; add(new T.SphereGeometry(0.052, 8, 6), Math.sin(b) * Math.cos(a) * r, 0.03 + Math.cos(b) * r, Math.sin(b) * Math.sin(a) * r); }
     } else if (ps === 7) { /* calvo */ }
     else if (ps === 8) { gorro(0.8, -0.1); add(new T.SphereGeometry(0.12, 14, 10), 0, 0.16, 0.03, 1.1, 0.6, 1.3); }   // undercut con jopo
+    else if (ps === 10) {                                            // pelo rizado de ROMME: volumen arriba y atrás, la frente y la cara quedan libres
+      gorro(1.0, -0.32);
+      for (let i = 0; i < 30; i++) { const a = i * 2.4, b = Math.acos(1 - (i + 0.5) / 30 * 0.85), r = 0.168; add(new T.SphereGeometry(0.058, 8, 6), Math.sin(b) * Math.cos(a) * r * 1.05, 0.075 + Math.cos(b) * r, -0.05 + Math.sin(b) * Math.sin(a) * r); }
+      [-1, 1].forEach(function (s) { add(new T.SphereGeometry(0.05, 8, 6), s * 0.135, 0.07, -0.02); add(new T.SphereGeometry(0.045, 8, 6), s * 0.12, 0.03, -0.075); });
+    }
     else if (ps === 9) { gorro(1.25); add(new T.SphereGeometry(0.07, 12, 10), 0, 0.19, -0.03); add(new T.SphereGeometry(0.03, 8, 6), 0, 0.14, -0.03); }   // moño
 
     // ----- cara -----
@@ -193,7 +198,7 @@ const Per3D = (function () {
   }
 
   // Personaje armado a partir del perfil del usuario (o de ROMME)
-  const ROMME = { nombre: "ROMMEE", dorsal: 11, piel: "#e0ac84", pelo: 0, colPelo: "#0a0a0a", barba: 1, colBarba: "#0a0a0a", camisa: 4, lentes: true };
+  const ROMME = { nombre: "ROMMEE", dorsal: 11, piel: "#e0ac84", pelo: 10, colPelo: "#0a0a0a", barba: 1, colBarba: "#0a0a0a", camisa: 4, lentes: true };
   function figuraDePerfil(p) {
     p = p || {};
     const k = Math.max(0, Math.min(4, p.camisa | 0)), cm = CAMISAS[k];

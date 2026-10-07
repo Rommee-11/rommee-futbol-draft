@@ -90,27 +90,26 @@ function dibujarBalon(g, x, y, r, ang, alfa) {
 // cv: lienzo a pantalla completa | btn: botón PATEA | relleno: barra de fuerza | cuando(fuerza 0..1): se llama al llegar la pelota
 function Patada(cv, btn, relleno, cuando, alSoltar) {
   const g = cv.getContext("2d"), CICLO = 1200, DVUELO = 0.95;
-  let est = "off", raf = 0, ts0 = 0, tCarga = 0, tSuelta = 0, tLlega = 0, pot = 0, fija = 0, A = {};
+  let est = "off", raf = 0, ts0 = 0, tSuelta = 0, tLlega = 0, fija = 0, res = null, A = {};
+  const BAR = BarraTiming.crear(relleno.parentNode, relleno);
   function medir() {
     const d = Math.min(2, window.devicePixelRatio || 1), w = window.innerWidth, h = window.innerHeight;
     cv.width = Math.round(w * d); cv.height = Math.round(h * d);
     const sc = Math.min(h * 0.42, w * 0.36) / 960, b = posBola();
     A = { d: d, w: w, h: h, sc: sc, x0: w * 0.07, suelo: h * 0.9, bx: w * 0.07 + b.x * sc, by: h * 0.9 - SUELO * sc + b.y * sc, r0: RBOLA * sc, R1: Math.min(w, h) * 0.21 };
   }
-  function barra(p) { relleno.style.clipPath = "inset(0 " + ((1 - p) * 100).toFixed(1) + "% 0 0)"; }
   function cuadro(ts) {
     ts0 = ts; if (est === "off" || est === "fin") { return; }
     g.setTransform(A.d, 0, 0, A.d, 0, 0); g.clearRect(0, 0, A.w, A.h);
     let pose, bx = A.bx, by = A.by, rb = A.r0, ab = 0, alfaB = 1, alfaP = 1;
-    if (est === "espera") { pose = respirar(ts); }
-    else if (est === "carga") { pot = ((ts - tCarga) % CICLO) / CICLO; barra(pot); pose = lerpP(REPOSO, PREP0, pot * 0.55); }
+    if (est === "espera") { pose = respirar(ts); BAR.actualizar(ts); }
     else {
       const u = (ts - tSuelta) / 1000; pose = poseDe(u);
       if (est === "patada" && u >= T_GOLPE) {
         const t = Math.min(1, (u - T_GOLPE) / DVUELO), m = 1 - t, cx = A.w * 0.5, cy = A.h * 0.44, qx = A.bx * 0.4 + cx * 0.6, qy = Math.min(A.by, cy) - A.h * 0.32;
         bx = m * m * A.bx + 2 * m * t * qx + t * t * cx; by = m * m * A.by + 2 * m * t * qy + t * t * cy;
         rb = A.r0 + (A.R1 - A.r0) * Math.pow(t, 1.7); ab = t * 12;
-        if (t >= 1) { est = "llegada"; tLlega = ts; cuando(fija); }
+        if (t >= 1) { est = "llegada"; tLlega = ts; cuando(fija, res); }
       } else if (est === "llegada") {
         const k = Math.min(1, (ts - tLlega) / 450); bx = A.w * 0.5; by = A.h * 0.44; rb = A.R1 * (1 + k * 0.6); ab = 12 + k * 3; alfaB = 1 - k; alfaP = 1 - k;
         if (k >= 1) { est = "fin"; g.clearRect(0, 0, A.w, A.h); return; }
@@ -120,19 +119,18 @@ function Patada(cv, btn, relleno, cuando, alSoltar) {
     dibujarBalon(g, bx, by, rb, ab, alfaB);
     raf = requestAnimationFrame(cuadro);
   }
-  function cargar() { if (est !== "espera") { return; } est = "carga"; tCarga = ts0; }
-  function soltar() {
-    if (est !== "carga") { return; }
-    fija = pot; est = "patada"; tSuelta = ts0; btn.disabled = true; alSoltar();
+  function patear() {
+    if (est !== "espera") { return; }
+    const r = BAR.parar((typeof L === "function" && L().zonas) || null);
+    if (!r) { return; }
+    res = r; fija = Math.random(); est = "patada"; tSuelta = ts0; btn.disabled = true; alSoltar();
   }
-  btn.addEventListener("pointerdown", function (e) { try { btn.setPointerCapture(e.pointerId); } catch (x) {} if (e.preventDefault) { e.preventDefault(); } cargar(); });
-  ["pointerup", "pointercancel"].forEach(function (n) { btn.addEventListener(n, soltar); });
+  btn.addEventListener("pointerdown", function (e) { try { btn.setPointerCapture(e.pointerId); } catch (x) {} if (e.preventDefault) { e.preventDefault(); } patear(); });
   btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-  btn.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); cargar(); } });
-  btn.addEventListener("keyup", function (e) { if (e.key === " " || e.key === "Enter") { soltar(); } });
+  btn.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); patear(); } });
   return {
-    reiniciar: function () { cancelAnimationFrame(raf); medir(); est = "espera"; pot = 0; barra(0); btn.disabled = false; raf = requestAnimationFrame(cuadro); },
-    detener: function () { cancelAnimationFrame(raf); est = "off"; if (A.w) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); } },
+    reiniciar: function () { cancelAnimationFrame(raf); medir(); est = "espera"; res = null; btn.disabled = false; BAR.iniciar(opcionesPenal()); raf = requestAnimationFrame(cuadro); },
+    detener: function () { cancelAnimationFrame(raf); est = "off"; BAR.detener(); if (A.w) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); } },
     estado: function () { return est; }
   };
 }

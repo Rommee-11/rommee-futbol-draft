@@ -15,7 +15,7 @@ const PENAL3D_OK = (function () {
 
 const PenalMundo = (function () {
   let R = null;            // renderer
-  let escena, cam, kicker, keeper, romme, balon, sombraBalon, red, listo = false, W = 0, H = 0, DPR = 1, firmaJugador = "";
+  let escena, cam, kicker, keeper, romme, balon, sombraBalon, red, huella, listo = false, W = 0, H = 0, DPR = 1, firmaJugador = "";
   const GZ = -11;          // la línea de gol está a 11 m del punto penal (que es el origen)
   const BALON_R = 0.17;
   const T = THREE;
@@ -96,6 +96,7 @@ const PenalMundo = (function () {
   function pFesteja(fase) {
     return Object.assign(pCarrera(fase), { sL: 2.7 + 0.2 * Math.sin(fase), sR: 2.7 - 0.2 * Math.sin(fase), eL: 0.3, eR: 0.3, aL: 0.6, aR: 0.6, incl: -0.08, giro: 0, cab: 0, bajo: 0.02 + 0.04 * Math.abs(Math.cos(fase)) });
   }
+  const P_LAMENTO = P({ sL: 2.9, sR: 2.9, eL: 2.3, eR: 2.3, aL: 0.45, aR: 0.45, incl: 0.3, cab: 0.2, bajo: 0.05 });
   // Pose del arquero: de pie con las rodillas flexionadas / lanzándose
   const G_ESPERA = P({ hL: 0.5, hR: 0.5, kL: 0.8, kR: 0.8, incl: 0.2, sL: 0.5, sR: 0.5, eL: 1.0, eR: 1.0, aL: 0.95, aR: 0.95, bajo: 0.18 });
   const G_VUELO = P({ hL: 0.1, hR: 0.5, kL: 0.2, kR: 0.8, incl: 0, sL: 3.0, sR: 3.0, eL: 0.1, eR: 0.1, aL: 0.15, aR: 0.15, bajo: 0.0 });
@@ -133,6 +134,7 @@ const PenalMundo = (function () {
     const inv = new T.MeshBasicMaterial({ visible: false });
     red = new T.Mesh(new T.BoxGeometry(7.32, 2.44, 2.0), [mr(2, 3), mr(2, 3), mr(10, 2), inv, inv, mr(10, 3)]);
     red.position.set(0, 1.22, -1.0); arco.add(red);
+    huella = new T.Mesh(new T.SphereGeometry(BALON_R * 1.35, 14, 10), new T.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0, depthWrite: false })); huella.visible = false; escena.add(huella);
     [-3.66, 3.66].forEach(function (x) { const pp = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 2.5, 8), blanco); pp.position.set(x, 1.22, -2.0); arco.add(pp); });
     escena.add(arco);
     // punto penal ya está dibujado en el césped; pelota
@@ -193,9 +195,9 @@ const PenalMundo = (function () {
     puntoFrente: puntoFrente,
     dibujar: function () { R.render(escena, cam); },
     ponerJugador: ponerJugador, ponerCamara: ponerCamara, zoom: zoom, animarRomme: animarRomme, CAM0: CAM0, LOOK0: LOOK0,
-    kicker: function () { return kicker; }, keeper: function () { return keeper; }, balon: function () { return balon; }, sombraBalon: function () { return sombraBalon; }, red: function () { return red; },
+    kicker: function () { return kicker; }, keeper: function () { return keeper; }, balon: function () { return balon; }, sombraBalon: function () { return sombraBalon; }, red: function () { return red; }, huella: function () { return huella; },
     cam: function () { return cam; }, GZ: GZ, BALON_R: BALON_R,
-    aplicar: aplicar, pose: { ESPERA: P_ESPERA, CARGA: P_CARGA, GK_ESPERA: G_ESPERA, GK_VUELO: G_VUELO }, posePateo: posePateo, pFesteja: pFesteja, mezcla: mezcla, suave: suave
+    aplicar: aplicar, pose: { ESPERA: P_ESPERA, CARGA: P_CARGA, LAMENTO: P_LAMENTO, GK_ESPERA: G_ESPERA, GK_VUELO: G_VUELO }, posePateo: posePateo, pFesteja: pFesteja, mezcla: mezcla, suave: suave
   };
 })();
 
@@ -206,10 +208,10 @@ const PenalMundo = (function () {
 //  panel = pantalla que muestra la ruleta (se oculta hasta que llega la pelota)
 // =====================================================================
 function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
-  const M = PenalMundo, T = THREE, CICLO = 1200;
-  let giroIni = 1.25, est = "off", raf = 0, ts0 = 0, tCarga = 0, tSuelta = 0, tLlega = 0, pot = 0, fija = 0, zIni = 2.9, lado = 1, destino = new T.Vector3(), dur = 0.6, frente = null, keeperLado = 1, keeperTarde = false, pegado = false;
-  const rapido = function (z) { return z; };
-  function barra(p) { relleno.style.clipPath = "inset(0 " + ((1 - p) * 100).toFixed(1) + "% 0 0)"; }
+  const M = PenalMundo, T = THREE;
+  let giroIni = 1.25, est = "off", raf = 0, ts0 = 0, tSuelta = 0, fija = 0, zIni = 2.9, lado = 1, destino = new T.Vector3(), dur = 0.6, frente = null, keeperLado = 1, keeperTarde = false, res = null, arcoAlto = 0;
+  const BAR = BarraTiming.crear(relleno.parentNode, relleno);
+  const rt = document.createElement("div"); rt.className = "resPenal"; if (panel) { panel.appendChild(rt); }
   function lienzo() { return M.renderer() ? M.renderer().domElement : null; }
   function ponerPelotaEnElPunto() {
     M.balon().position.set(0, M.BALON_R, 0); M.balon().rotation.set(0, 0, 0);
@@ -220,12 +222,21 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
     k.sombra.scale.set(0.9, 0.9, 1); g.sombra.scale.set(0.9, 0.9, 1);
     g.sombra.position.set(0, 0.012, 0); k.sombra.position.set(0, 0.012, 0);
   }
-  function elegirTiro() {
-    lado = Math.random() < 0.5 ? -1 : 1;
-    const alto = Math.random() < 0.6;
-    destino.set(lado * (2.3 + Math.random() * 1.0), alto ? 1.6 + Math.random() * 0.55 : 0.4 + Math.random() * 0.5, M.GZ - 0.5 - Math.random() * 0.8);
-    keeperTarde = Math.random() < 0.3;
-    keeperLado = keeperTarde ? lado : -lado;
+  // Dónde va la pelota según el resultado que salió en la barra
+  function elegirTiro(r) {
+    lado = Math.random() < 0.5 ? -1 : 1; arcoAlto = 0;
+    if (r === "gol") {
+      const alto = Math.random() < 0.6;
+      destino.set(lado * (2.3 + Math.random() * 1.0), alto ? 1.6 + Math.random() * 0.55 : 0.4 + Math.random() * 0.5, M.GZ - 0.5 - Math.random() * 0.8);
+      keeperTarde = Math.random() < 0.45; keeperLado = keeperTarde ? lado : -lado;
+    } else if (r === "ataja") {
+      destino.set(lado * (1.3 + Math.random() * 1.3), 0.5 + Math.random() * 1.0, M.GZ + 0.5);
+      keeperTarde = false; keeperLado = lado;
+    } else {                                           // afuera: por arriba del travesaño o al costado del palo
+      if (Math.random() < 0.5) { destino.set(lado * (0.4 + Math.random() * 2.6), 3.0 + Math.random() * 0.6, M.GZ - 0.4); }
+      else { destino.set(lado * (4.5 + Math.random() * 1.0), 0.6 + Math.random() * 1.2, M.GZ - 0.4); }
+      keeperTarde = true; keeperLado = lado;
+    }
   }
   function esperaKeeper(ts) {
     const g = M.keeper(), s = Math.sin(ts / 520);
@@ -233,19 +244,27 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
     M.aplicar(g, M.mezcla(M.pose.GK_ESPERA, M.pose.GK_ESPERA, 0));
     g.sombra.position.x = 0;
   }
-  function moverKeeper(u, ts) {        // u = segundos desde el golpe
+  function moverKeeper(ub, ts) {        // ub = segundos desde que la pelota sale del pie
     const g = M.keeper();
-    if (u < 0.08) { esperaKeeper(ts); return; }
-    const k = M.suave((u - 0.08) / (keeperTarde ? 0.95 : 0.6)), alcance = keeperTarde ? 1.6 : 2.5;
+    if (ub < 0.08) { esperaKeeper(ts); return; }
+    let k, alcance;
+    if (res.res === "ataja") { k = M.suave((ub - 0.05) / (dur * 0.9)); alcance = Math.min(2.9, Math.abs(destino.x)); }
+    else if (res.res === "afuera") { k = 0.6 * M.suave((ub - 0.1) / (dur * 1.1)); alcance = 1.4; }
+    else { k = M.suave((ub / LENTO - 0.08) / (keeperTarde ? 0.95 : 0.6)); alcance = keeperTarde ? 1.6 : 2.5; }
     g.raiz.position.set(keeperLado * alcance * k, 0.55 * Math.sin(Math.min(1, k) * Math.PI) * (keeperTarde ? 0.7 : 1), M.GZ + 0.35);
     g.raiz.rotation.set(0, 0, -keeperLado * 1.25 * k);
     M.aplicar(g, M.mezcla(M.pose.GK_ESPERA, M.pose.GK_VUELO, k));
   }
   const CAMA = new T.Vector3(1.5, 1.8, 4.9), CAM1 = new T.Vector3(-0.5, 1.8, -17.6), CAMC = new T.Vector3(9.5, 2.7, -12.5);
-  const UG = 1.22, LENTO = 1.7, FASE2 = 1.8, PAUSA = 0.4;   // LENTO: cámara lenta del vuelo; FASE2: giro hasta detrás de la red
-  let tPrev = 0, miraAct = new T.Vector3(), saltando = false;
-  let reposo = new T.Vector3();
-  function bezier(a, c, b2, t) { const m = 1 - t; return new T.Vector3(m * m * a.x + 2 * m * t * c.x + t * t * b2.x, m * m * a.y + 2 * m * t * c.y + t * t * b2.y, m * m * a.z + 2 * m * t * c.z + t * t * b2.z); }
+  const UG = 1.22, LENTO = 1.6, FASE2 = 1.1, VEL = 1.5;   // VEL: ritmo general de la jugada (carrera, patada, vuelo)   // LENTO: cámara lenta del vuelo; FASE2: giro hasta detrás de la red
+  let tPrev = 0, miraAct = new T.Vector3();
+  const _pc = new T.Vector3(), _bz = new T.Vector3(), _ob = new T.Vector3(), _pa = new T.Vector3(), reposo = new T.Vector3();
+  function bezier(a, c, b2, t) { const m = 1 - t; return _bz.set(m * m * a.x + 2 * m * t * c.x + t * t * b2.x, m * m * a.y + 2 * m * t * c.y + t * t * b2.y, m * m * a.z + 2 * m * t * c.z + t * t * b2.z); }
+  function mostrarRes(r) {
+    const d = (typeof L === "function") ? L() : {};
+    rt.textContent = r === "gol" ? (d.resGol || "¡GOOOL!") : (r === "ataja" ? (d.resAtaja || "¡LO ATAJÓ!") : (d.resAfuera || "¡AFUERA!"));
+    rt.className = "resPenal ver " + r;
+  }
   function cuadro(ts) {
     const dtc = Math.min(0.05, Math.max(0, (ts - (tPrev || ts)) / 1000)); tPrev = ts;
     ts0 = ts; if (est === "off" || est === "fin") { return; }
@@ -255,89 +274,82 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       const resp = Math.sin(ts / 700) * 0.012;
       k.raiz.position.set(0, 0, zIni); k.raiz.rotation.y = Math.PI - 1.25; M.aplicar(k, Object.assign({}, M.pose.ESPERA, { bajo: resp }));
       esperaKeeper(ts); M.ponerCamara(M.CAM0, M.LOOK0);
-    } else if (est === "carga") {
-      pot = ((ts - tCarga) % CICLO) / CICLO; barra(pot);
-      const q = M.suave(pot * 0.9);
-      zIni = 2.9 + 0.45 * q; giroIni = 1.25 - 0.65 * q; k.raiz.rotation.y = Math.PI - giroIni; k.raiz.position.set(0, 0, zIni);
-      M.aplicar(k, M.mezcla(M.pose.ESPERA, M.pose.CARGA, q)); esperaKeeper(ts); M.ponerCamara(M.CAM0, M.LOOK0);
+      BAR.actualizar(ts);
     } else if (est === "patada") {
-      const u = (ts - tSuelta) / 1000, zK = 0.62;
-      // el jugador corre, patea y sale corriendo a festejar hacia la cámara de atrás del arco
+      const u = (ts - tSuelta) / 1000 * VEL, zK = 0.62, gol = res.res === "gol";
       let zz, yy = 0;
       if (u < 1.0) { zz = zIni + (zK - zIni) * M.suave(u / 1.0); }
       else if (u < 1.6) { zz = zK - (u - 1.0) * 0.25; if (u > 1.3 && u < 1.55) { yy = 0.08 * Math.sin((u - 1.3) / 0.25 * Math.PI); } }
-      else { const v = Math.min(u - 1.6, 1.8); zz = zK - 0.15 - 1.7 * v - 1.7 * v * v; yy = 0.06 * Math.abs(Math.sin(v * 9)); }
+      else if (gol) { const v = Math.min(u - 1.6, 1.8); zz = zK - 0.15 - 1.7 * v - 1.7 * v * v; yy = 0.06 * Math.abs(Math.sin(v * 9)); }
+      else { zz = zK - 0.15 - 0.3 * Math.min(1, (u - 1.6) / 1.5); }
       k.raiz.position.set(0, yy, zz);
       k.raiz.rotation.y = Math.PI - giroIni * (1 - M.suave(u / 0.4));
       let pz = M.posePateo(Math.min(u, 1.55));
-      if (u > 1.55) { pz = M.mezcla(pz, M.pFesteja((u - 1.55) * 2 * Math.PI * 1.9), M.suave((u - 1.55) / 0.4)); }
+      if (u > 1.55) { pz = gol ? M.mezcla(pz, M.pFesteja((u - 1.55) * 2 * Math.PI * 1.9), M.suave((u - 1.55) / 0.4)) : M.mezcla(pz, M.pose.LAMENTO, M.suave((u - 1.55) / 0.6)); }
       M.aplicar(k, pz);
-      moverKeeper((u - UG) / LENTO, ts);
       const uBalon = u - UG;
+      moverKeeper(Math.max(0, uBalon), ts);
+      const T2 = 1.05, H = M.huella();
       if (uBalon >= 0) {
-        const tRet = dur - 0.1 + FASE2 + PAUSA, T2 = 1.0;
         if (uBalon < dur) {                                  // vuelo hacia el arco
           const t = uBalon / dur, y0 = M.BALON_R;
           b.position.set(destino.x * t, y0 + (destino.y - y0) * t + 0.9 * Math.sin(t * Math.PI) * (1 - 0.5 * t), destino.z * t);
           M.sombraBalon().position.set(b.position.x, 0.015, b.position.z); M.sombraBalon().scale.setScalar(0.9 * (1 - 0.5 * Math.min(1, b.position.y / 2)));
-          b.rotation.x += 0.35; b.rotation.y += 0.22;
-        } else if (uBalon < tRet) {                           // pega en la red y queda girando adentro
-          const t2 = uBalon - dur;
-          if (t2 < 0.12) { M.red().scale.z = 1 + 0.35 * Math.sin(t2 / 0.12 * Math.PI); b.position.copy(destino); }
-          else {
-            M.red().scale.z = 1;
-            const g = M.suave((t2 - 0.12) / 0.55);
-            reposo.set(destino.x, M.BALON_R + 0.02, destino.z - 0.3);
-            b.position.set(destino.x, destino.y + (reposo.y - destino.y) * g, destino.z + (reposo.z - destino.z) * g);
-            M.sombraBalon().position.set(b.position.x, 0.015, b.position.z); M.sombraBalon().scale.setScalar(0.9);
-          }
-          b.rotation.x += 0.18; b.rotation.y += 0.12;
-        } else {                                              // vuelve hacia la pantalla y se convierte en la ruleta
+          b.rotation.x += 0.4; b.rotation.y += 0.25;
+        } else {                                              // toca la red / el arquero y SIN frenar sigue hasta la pantalla y se vuelve ruleta
+          const t2 = uBalon - dur, r = res.res;
           M.sombraBalon().visible = false;
           if (!frente) { frente = M.puntoFrente(); }
-          const t = Math.min(1, (uBalon - tRet) / T2), cp = M.cam().position, d0 = reposo.distanceTo(cp), d1 = frente.distanceTo(cp);
-          const tt = t * (0.25 + 0.75 * t), dd = 1 / ((1 - tt) / d0 + tt / d1), e = (d0 - dd) / (d0 - d1);
-          b.position.set(reposo.x + (frente.x - reposo.x) * e, reposo.y + (frente.y - reposo.y) * e, reposo.z + (frente.z - reposo.z) * e);
+          if (t2 < 0.05) { mostrarRes(r); }
+          if (t2 > 0.7) { rt.className = "resPenal"; }
+          const t = Math.min(1, t2 / T2), cp = M.cam().position, d0 = destino.distanceTo(cp), d1 = frente.distanceTo(cp);
+          const tt = t * (0.2 + 0.8 * t), dd = 1 / ((1 - tt) / d0 + tt / d1), e = (d0 - dd) / (d0 - d1);
+          b.position.set(destino.x + (frente.x - destino.x) * e, destino.y + (frente.y - destino.y) * e, destino.z + (frente.z - destino.z) * e);
           b.rotation.x += 0.3; b.rotation.y += 0.2;
-          if (t >= 1 && est === "patada") { est = "llegada"; tLlega = ts; terminar(); }
+          if (r === "gol" && t2 < 0.55) {                    // la red se estira y marca la forma de la pelota
+            const k = Math.sin(Math.min(1, t2 / 0.55) * Math.PI), sq = Math.min(1, t2 / 0.12);
+            M.red().scale.z = 1 + 0.3 * k; H.visible = true; H.material.opacity = 0.85 * (1 - t2 / 0.55) * sq;
+            H.position.set(destino.x, destino.y, destino.z - 0.12 - 0.1 * k); H.scale.set(1 + 0.25 * k, 1 + 0.25 * k, 0.7 + 0.5 * k);
+          } else { M.red().scale.z = 1; H.visible = false; }
+          if (t >= 1 && est === "patada") { est = "llegada"; terminar(); }
         }
       } else { b.position.set(0, M.BALON_R, 0); }
       // cámara de cine: 1) detrás del jugador siguiendo la trayectoria, 2) mientras entra, gira hasta detrás de la red con la pelota al centro
       const s1 = M.suave((u - 0.3) / (UG + dur - 0.3)), s2 = M.suave((uBalon - (dur - 0.1)) / FASE2);
-      const w = M.suave(uBalon / (dur * 0.5)), objetivo = M.LOOK0.clone().lerp(new T.Vector3(b.position.x, b.position.y + 0.1, b.position.z), w);
+      const w = M.suave(uBalon / (dur * 0.5)), objetivo = _ob.copy(M.LOOK0).lerp(_pa.set(b.position.x, b.position.y + 0.1, b.position.z), w);
       miraAct.lerp(objetivo, 1 - Math.exp(-dtc * (s2 > 0 ? 9 : 7)));
-      M.ponerCamara(bezier(M.CAM0.clone().lerp(CAMA, s1), CAMC, CAM1, s2), miraAct); M.zoom(1 - 0.12 * s1 - 0.1 * s2);
+      M.ponerCamara(bezier(_pc.copy(M.CAM0).lerp(CAMA, s1), CAMC, CAM1, s2), miraAct); M.zoom(1 - 0.12 * s1 - 0.1 * s2);
     }
     M.dibujar();
     if (est !== "fin" && est !== "off") { raf = requestAnimationFrame(cuadro); }
   }
   function terminar() {
-    const c = lienzo();
+    const c = lienzo(); rt.className = "resPenal";
     if (panel) { panel.classList.remove("pre"); const fl = document.createElement("div"); fl.className = "flashPenal"; panel.appendChild(fl); setTimeout(function () { if (fl.parentNode) { fl.parentNode.removeChild(fl); } }, 900); }
-    cuando(fija);                                      // la ruleta aparece (y empieza a girar) justo donde estaba la pelota
+    cuando(fija, res);                                 // la ruleta aparece (y empieza a girar) justo donde estaba la pelota
     if (c) { c.style.transition = "opacity .7s ease-in"; c.style.opacity = "0"; }
     setTimeout(function () { est = "fin"; if (c) { c.style.display = "none"; } }, 750);
   }
-  function saltar() {
-    if (est !== "espera" && est !== "carga" && est !== "patada") { return; }
-    if (est !== "patada") { fija = Math.random(); alSoltar(); btn.disabled = true; }
-    est = "skip"; terminar();
+  const NOM_ZONA = function () { return (typeof L === "function" && L().zonas) || null; };
+  function patear() {                                  // se apretó PATEA: la línea se frena donde está
+    if (est !== "espera") { return; }
+    const r = BAR.parar(NOM_ZONA());
+    if (!r) { return; }
+    res = r; fija = Math.random(); est = "patada"; tSuelta = ts0; btn.disabled = true; frente = null;
+    dur = (0.62 - 0.22 * Math.random()) * LENTO; miraAct.copy(M.LOOK0);
+    elegirTiro(res.res); CAM1.x = destino.x * 0.3; alSoltar();
   }
-  function cargar() { if (est !== "espera") { return; } est = "carga"; tCarga = ts0; }
-  function soltar() {
-    if (est !== "carga") { return; }
-    fija = pot; est = "patada"; tSuelta = ts0; btn.disabled = true; frente = null; pegado = false;
-    dur = (0.62 - 0.22 * fija) * LENTO; miraAct.copy(M.LOOK0);
-    elegirTiro(); CAM1.x = destino.x * 0.3; alSoltar();
+  function saltar() {
+    if (est !== "espera" && est !== "patada") { return; }
+    if (est === "espera") { res = BarraTiming.resultado("naranja"); fija = Math.random(); alSoltar(); btn.disabled = true; BAR.detener(); }
+    est = "skip"; terminar();
   }
   const bs = document.createElement("button"); bs.className = "btnSaltar"; bs.type = "button";
   bs.addEventListener("click", function (e) { e.stopPropagation(); saltar(); });
-  if (panel) { panel.appendChild(bs); }
-  btn.addEventListener("pointerdown", function (e) { try { btn.setPointerCapture(e.pointerId); } catch (x) {} if (e.preventDefault) { e.preventDefault(); } cargar(); });
-  ["pointerup", "pointercancel"].forEach(function (n) { btn.addEventListener(n, soltar); });
+  const fila = document.createElement("div"); fila.className = "filaPatea"; btn.parentNode.insertBefore(fila, btn); fila.appendChild(btn); fila.appendChild(bs);
+  btn.addEventListener("pointerdown", function (e) { try { btn.setPointerCapture(e.pointerId); } catch (x) {} if (e.preventDefault) { e.preventDefault(); } patear(); });
   btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-  btn.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); cargar(); } });
-  btn.addEventListener("keyup", function (e) { if (e.key === " " || e.key === "Enter") { soltar(); } });
+  btn.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); patear(); } });
   window.addEventListener("resize", function () { if (est !== "off" && est !== "fin" && M.listo()) { M.medir(); frente = null; } });
   return {
     reiniciar: function () {
@@ -350,12 +362,13 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       cv.style.display = "none";
       if (panel) { panel.classList.add("penal", "pre"); }
       bs.textContent = (typeof L === "function" && L().saltar) || "Saltear animación";
-      M.medir(); est = "espera"; pot = 0; barra(0); btn.disabled = false; zIni = 2.9; giroIni = 1.25; frente = null; pegado = false;
-      ponerPelotaEnElPunto(); sombrasFiguras(); M.red().scale.z = 1; M.keeper().raiz.visible = true; M.keeper().raiz.rotation.set(0, 0, 0);
+      M.medir(); est = "espera"; res = null; btn.disabled = false; zIni = 2.9; giroIni = 1.25; frente = null; rt.className = "resPenal"; tPrev = 0;
+      BAR.iniciar(opcionesPenal());
+      ponerPelotaEnElPunto(); sombrasFiguras(); M.red().scale.z = 1; M.huella().visible = false; M.keeper().raiz.visible = true; M.keeper().raiz.rotation.set(0, 0, 0);
       raf = requestAnimationFrame(cuadro);
     },
     detener: function () {
-      cancelAnimationFrame(raf); est = "off";
+      cancelAnimationFrame(raf); est = "off"; BAR.detener(); rt.className = "resPenal";
       const c = lienzo(); if (c && c.parentNode === cv.parentNode) { c.style.display = "none"; }
       if (panel) { panel.classList.remove("penal", "pre"); }
     },

@@ -208,6 +208,14 @@ table.td { width: 100%; border-collapse: collapse; font-size: 14px; }
 .ayudaP { font-size: clamp(12px, 1.8vw, 16px); opacity: .85; margin: 6px 0 2px; }
 .barraF { position: relative; width: min(80vw, 460px); height: 24px; margin: 6px auto 12px; border: 3px solid #fff; border-radius: 14px; background: rgba(0,0,0,.6); overflow: hidden; box-shadow: 0 0 14px rgba(0,0,0,.6); }
 .relleno { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: linear-gradient(90deg, #e63946 0%, #f77f00 25%, #ffd23f 50%, #9bd93c 75%, #2ecc71 100%); clip-path: inset(0 100% 0 0); }
+.relleno { display: none; }
+.barraF { height: 26px; overflow: visible; border-radius: 14px; }
+.barraF.parada { box-shadow: 0 0 18px #fff; }
+.cursorB { position: absolute; top: -7px; bottom: -7px; width: 6px; margin-left: -3px; background: #fff; border-radius: 3px; box-shadow: 0 0 10px #fff, 0 0 3px #000; pointer-events: none; }
+.zonaTxt { min-height: 22px; margin: -6px 0 8px; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 4px #000; }
+.resPenal { position: absolute; left: 50%; top: 38%; transform: translate(-50%,-50%) scale(.6); font-size: clamp(34px, 9vw, 84px); font-weight: 900; color: #fff; text-shadow: 0 4px 10px #000, 0 0 24px #000; opacity: 0; pointer-events: none; z-index: 9; white-space: nowrap; transition: opacity .15s, transform .25s; }
+.resPenal.ver { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+.resPenal.gol { color: #2ecc71; } .resPenal.ataja { color: #ffd23f; } .resPenal.afuera { color: #e63946; }
 #botonGirar, #btnGirarForm { touch-action: none; user-select: none; -webkit-user-select: none; }
 #escenaReel { transition: opacity .6s; }
 #escenaReel.tenue { opacity: .35; }
@@ -222,9 +230,11 @@ canvas.cvPatada.gl { z-index: -1; }
 #selFormacion.penal.pre .escena3d, #selFormacion.penal.pre #formNombre, #selFormacion.penal.pre [onclick^="pasoForm"], #selFormacion.penal.pre [onclick^="empezarDraft"] { visibility: hidden; }
 #selFormacion.penal.pre { background: none; }
 #selFormacion.penal.pre .escena3d { flex: 1 1 auto; height: auto; }
-.btnSaltar { display: none; position: fixed; right: 14px; bottom: 14px; z-index: 6; padding: 9px 16px; border-radius: 22px; border: 2px solid rgba(255,255,255,.7); background: rgba(10,20,40,.72); color: #fff; font-size: 14px; letter-spacing: .5px; cursor: pointer; }
+.btnSaltar { display: none; align-self: center; margin: 8px auto 0; padding: 6px 16px; border-radius: 20px; border: 2px solid rgba(255,255,255,.65); background: rgba(10,20,40,.72); color: #fff; font-size: 13px; letter-spacing: .5px; cursor: pointer; }
 .btnSaltar:hover { background: rgba(30,60,110,.9); }
-.penal.pre > .btnSaltar { display: block; }
+.penal.pre .btnSaltar { display: block; }
+.filaPatea { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.filaPatea .btnSaltar { margin: 0; }
 #btnEmpezar:disabled { opacity: .35; filter: grayscale(.6); cursor: not-allowed; }
 #selFormacion .escena3d, #selFormacion #formNombre { transition: opacity .6s; }
 .panelRuleta { z-index: 2; }
@@ -375,8 +385,11 @@ canvas.cvPatada.gl { z-index: -1; }
 <script>if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { navigator.serviceWorker.register("sw.js").catch(function () {}); }</script>
 <script src="datos/equipos.js"></script>
 <script src="datos/jugadores.js"></script>
+<script src="datos/legendarios.js"></script>
+<script src="datos/cartas.js"></script>
 <script src="datos/banderas.js"></script>
 <script src="datos/three.min.js"></script>
+<script src="datos/barra.js"></script>
 <script src="datos/avatar.js"></script>
 <script src="datos/personaje3d.js"></script>
 <script src="datos/penal3d.js"></script>
@@ -406,6 +419,7 @@ canvas.cvPatada.gl { z-index: -1; }
     let slots = [], slotActivo = null, fase = 0, sel = {}, lista = [], girando = false, jugadorActual = null;
 
     function el(id) { return document.getElementById(id); }
+    function edadTxt(j) { return j.edad ? j.edad + " " + TT[ajustes.idioma].anios : TT[ajustes.idioma].leyenda; }
     function sinRepetidos(l) { return l.filter(function (x, i) { return l.indexOf(x) === i; }); }
 
     for (const f in FORMACIONES) { el("selForm").add(new Option(f, f)); }
@@ -495,9 +509,11 @@ canvas.cvPatada.gl { z-index: -1; }
     }
 
     // Jugadores del puesto elegido que todavía no están en la cancha
+    let comodinPuesto = false;      // carta Comodín de puesto: el próximo jugador puede ser de cualquier puesto (menos arquero)
     function disponibles() {
+      const pp = slots[slotActivo].pos;
       return JUGADORES.filter(function (j) {
-        return j.posicion === slots[slotActivo].pos && !slots.some(function (s) { return s.jugador && s.jugador.nombre === j.nombre && s.jugador.equipo === j.equipo; });
+        return (comodinPuesto ? (pp === "ARQ" ? j.posicion === "ARQ" : j.posicion !== "ARQ") : j.posicion === pp) && !slots.some(function (s) { return s.jugador && s.jugador.nombre === j.nombre && s.jugador.equipo === j.equipo; });
       });
     }
 
@@ -505,7 +521,9 @@ canvas.cvPatada.gl { z-index: -1; }
       const d = disponibles();
       if (fase === 1) {
         const equipos = d.map(function (j) { return j.equipo; });
-        return Object.keys(EQUIPOS).filter(function (l) { return EQUIPOS[l].some(function (e) { return equipos.indexOf(e) !== -1; }); });
+        const ligas = Object.keys(EQUIPOS).filter(function (l) { return EQUIPOS[l].some(function (e) { return equipos.indexOf(e) !== -1; }); });
+        if (cartasElegibles().length) { ligas.push(CARTA_ID); }    // casillero de carta trampa
+        return ligas;
       }
       if (fase === 2) {
         return EQUIPOS[sel.liga].filter(function (e) { return d.some(function (j) { return j.equipo === e; }); });
@@ -546,7 +564,47 @@ canvas.cvPatada.gl { z-index: -1; }
       dibujarRuleta();
     }
 
+    // ----- Cartas trampa -----
+    function cartasElegibles() {
+      if (slotActivo === null || !slots[slotActivo]) { return []; }
+      const llenos = slots.some(function (x) { return x.jugador; });
+      return CARTAS.filter(function (c) {
+        if (!c.solo) { return false; }
+        if (c.id === "comodin") { return slots[slotActivo].pos !== "ARQ" && !comodinPuesto; }
+        if (c.id === "descarte" || c.id === "roja") { return llenos; }
+        return true;
+      });
+    }
+    function mostrarCarta() {
+      const el_ = cartasElegibles(), c = el_.length ? el_[Math.floor(Math.random() * el_.length)] : CARTAS[0], t = c.t[ajustes.idioma] || c.t.es, d = TT[ajustes.idioma];
+      el("pNivel").style.display = "none";
+      el("pEtiqueta").textContent = d.cartaTrampa + (c.propia ? "  ·  ⚠️" : "");
+      el("pNombre").textContent = c.ico + "  " + t[0];
+      el("pDatos").textContent = t[1];
+      const b = el("pBoton"); b.textContent = d.aplicar;
+      b.onclick = function () { el("presentacion").classList.remove("visible"); aplicarCarta(c.id); };
+      el("presentacion").classList.add("visible");
+    }
+    function quitarJugador(i) {        // el jugador se va y se vuelve a sortear ese puesto
+      slots[i].jugador = null; slotActivo = i; fase = 1; sel = {}; comodinPuesto = false;
+      dibujarCancha(); mostrarRuleta();
+    }
+    function aplicarCarta(id) {
+      if (id === "doble") { window.MOD_PENAL.doble = true; }
+      else if (id === "bota") { window.MOD_PENAL.bota = true; }
+      else if (id === "comodin") { comodinPuesto = true; }
+      else if (id === "descarte" || id === "roja") {
+        const idx = []; slots.forEach(function (x, i) { if (x.jugador) { idx.push(i); } });
+        let q;
+        if (id === "roja") { q = idx[Math.floor(Math.random() * idx.length)]; }
+        else { q = idx.sort(function (a, b) { return slots[a].jugador.nivel - slots[b].jugador.nivel; })[0]; }
+        quitarJugador(q); return;
+      }
+      fase = 1; sel = {}; mostrarRuleta();
+    }
+
     function mostrarResultado(valor) {
+      if (fase === 1 && valor === CARTA_ID) { mostrarCarta(); return; }
       el("pNivel").style.display = "none";
       el("pEtiqueta").textContent = NOMBRE_FASE[fase - 1];
       el("pNombre").innerHTML = banderaHTML(valor) + esc(valor);
@@ -567,12 +625,12 @@ canvas.cvPatada.gl { z-index: -1; }
         const caja = el("pNivel");
         caja.style.display = "block";
         caja.style.color = j.nivel >= 80 ? "#ffd700" : (j.nivel >= 74 ? "#d9d9d9" : "#e0955a");
-        el("pDatos").innerHTML = "#" + j.dorsal + "  ·  " + j.edad + " " + TT[ajustes.idioma].anios + "  ·  " + banderaHTML(j.nacionalidad) + esc(j.nacionalidad);
+        el("pDatos").innerHTML = "#" + j.dorsal + "  ·  " + edadTxt(j) + "  ·  " + banderaHTML(j.nacionalidad) + esc(j.nacionalidad);
         let n = 0; caja.textContent = 0;
         const reloj = setInterval(function () { n = n + 1; caja.textContent = n; if (n >= j.nivel) { clearInterval(reloj); } }, 15);
         boton.textContent = TT[ajustes.idioma].sumar;
         boton.onclick = function () {
-          slots[slotActivo].jugador = jugadorActual;
+          slots[slotActivo].jugador = jugadorActual; comodinPuesto = false;
           slotActivo = null; fase = 0;
           el("presentacion").classList.remove("visible");
           el("zonaRuleta").style.display = "none";
@@ -589,11 +647,12 @@ canvas.cvPatada.gl { z-index: -1; }
 // ===== Idiomas =====
 const TT = {
   es: {
+    cartaTrampa: "CARTA TRAMPA", aplicar: "Aplicar carta", leyenda: "Leyenda",
     creaTitulo: "Creá tu jugador", saltar: "Saltear animación", borrarUsuario: "Borrar usuario", confirmarBorrar: "¿Borrar tu usuario y crear otro? Se pierde tu personaje (los records quedan).", dorsal: "Dorsal (1 a 99)", piel: "Color de piel", peinado: "Peinado", colorPelo: "Color de pelo", barba: "Barba", colorBarba: "Color de barba", camiseta: "Camiseta", guardarEntrar: "Guardar y entrar", giraArrastra: "Arrastrá para girar a tu jugador", nombreObligatorio: "Escribí tu nombre de usuario para continuar.",
     peinados: ["Afro", "Corto", "Con flequillo", "Mohicano", "Largo suelto", "Con colita", "Rulos", "Calvo", "Con jopo", "Con moño"], barbas: ["Sin barba", "Candado", "Perilla", "Bigote", "Barba corta", "Barba larga", "Patillas"], camisetas: ["Rayo", "Selva", "Noche", "Sol"],
     felicitaciones: "¡FELICITACIONES!", puntosTotales: "PUNTOS TOTALES", rankingBtn: "Ver ranking",
     unJugador: "UN JUGADOR", multijugador: "MULTIJUGADOR", opciones: "OPCIONES", records: "RECORDS", salir: "SALIR", miPerfil: "MI PERFIL", volver: "Volver", menuBtn: "Menú", reiniciar: "Reiniciar selección",
-    formacion: "Elegí tu formación:", empezar: "Empezar", tocaPuesto: "Tocá un lugar vacío de la cancha para elegir ese puesto", puestoElegido: "Puesto elegido", fase: "Fase", girar: "PATEA", ayudaPatada: "Mantené apretado para cargar la fuerza y soltá para patear", continuar: "Continuar", sumar: "Sumar a mi equipo",
+    formacion: "Elegí tu formación:", empezar: "Empezar", tocaPuesto: "Tocá un lugar vacío de la cancha para elegir ese puesto", puestoElegido: "Puesto elegido", fase: "Fase", girar: "PATEA", ayudaPatada: "Apretá PATEA cuando la línea esté en la zona verde", zonas: {verde:"VERDE",amarillo:"AMARILLO",naranja:"NARANJA",rojo:"ROJO"}, resGol: "¡GOOOL!", resAtaja: "¡LO ATAJÓ!", resAfuera: "¡AFUERA!", continuar: "Continuar", sumar: "Sumar a mi equipo",
     jugadores: "Jugadores", nivelTotal: "Nivel total", completo: "¡Equipo completo!", sinJugadores: "No hay jugadores cargados para este puesto", anios: "años", usuario: "Usuario",
     sinRecords: "Todavía no hay partidas. ¡Armá tu primer equipo!", entraste: "¡Entraste al Top 10! Puesto", noEntraste: "No alcanzó para el Top 10. ¡Probá de nuevo!", verRanking: "Ver ranking", jugarOtra: "Jugar de nuevo", felicitaciones: "¡FELICITACIONES!", puntosTotales: "Puntos totales",
     video: "Video", fondoAnimado: "Fondo animado", videoProx: "Más ajustes de video próximamente.", audio: "Audio", musica: "Música", efectos: "Efectos", audioProx: "Los sonidos se agregarán más adelante.", idioma: "Idioma",
@@ -602,11 +661,12 @@ const TT = {
     fases: ["Liga", "Equipo", "Nacionalidad", "Jugador"],
     pos: { ARQ: "Arquero", LD: "Lateral derecho", LI: "Lateral izquierdo", DFC: "Defensor central", MCD: "Medio defensivo", MC: "Mediocampista central", MCO: "Medio ofensivo", MD: "Mediocampista derecho", MI: "Mediocampista izquierdo", ED: "Extremo derecho", EI: "Extremo izquierdo", DC: "Delantero centro" } },
   en: {
+    cartaTrampa: "TRAP CARD", aplicar: "Apply card", leyenda: "Legend",
     creaTitulo: "Create your player", saltar: "Skip animation", borrarUsuario: "Delete user", confirmarBorrar: "Delete your user and create a new one? Your character will be lost (records stay).", dorsal: "Shirt number (1 to 99)", piel: "Skin tone", peinado: "Hairstyle", colorPelo: "Hair color", barba: "Beard", colorBarba: "Beard color", camiseta: "Jersey", guardarEntrar: "Save and enter", giraArrastra: "Drag to rotate your player", nombreObligatorio: "Type a username to continue.",
     peinados: ["Afro", "Short", "Fringe", "Mohawk", "Long loose", "Ponytail", "Curls", "Bald", "Quiff", "Bun"], barbas: ["No beard", "Goatee", "Soul patch", "Moustache", "Short beard", "Long beard", "Sideburns"], camisetas: ["Bolt", "Jungle", "Night", "Sun"],
     felicitaciones: "CONGRATULATIONS!", puntosTotales: "TOTAL POINTS", rankingBtn: "View ranking",
     unJugador: "SINGLE PLAYER", multijugador: "MULTIPLAYER", opciones: "OPTIONS", records: "RECORDS", salir: "EXIT", miPerfil: "MY PROFILE", volver: "Back", menuBtn: "Menu", reiniciar: "Restart selection",
-    formacion: "Choose your formation:", empezar: "Start", tocaPuesto: "Tap an empty spot on the pitch to pick that position", puestoElegido: "Position", fase: "Step", girar: "KICK", ayudaPatada: "Hold to charge the power and release to kick", continuar: "Continue", sumar: "Add to my team",
+    formacion: "Choose your formation:", empezar: "Start", tocaPuesto: "Tap an empty spot on the pitch to pick that position", puestoElegido: "Position", fase: "Step", girar: "KICK", ayudaPatada: "Press KICK when the line is in the green zone", zonas: {verde:"GREEN",amarillo:"YELLOW",naranja:"ORANGE",rojo:"RED"}, resGol: "GOOOAL!", resAtaja: "SAVED!", resAfuera: "MISSED!", continuar: "Continue", sumar: "Add to my team",
     jugadores: "Players", nivelTotal: "Total rating", completo: "Team complete!", sinJugadores: "No players loaded for this position", anios: "years old", usuario: "User",
     sinRecords: "No games yet. Build your first team!", entraste: "You made the Top 10! Rank", noEntraste: "Not enough for the Top 10. Try again!", verRanking: "View ranking", jugarOtra: "Play again", felicitaciones: "CONGRATULATIONS!", puntosTotales: "Total points",
     video: "Video", fondoAnimado: "Animated background", videoProx: "More video settings coming soon.", audio: "Audio", musica: "Music", efectos: "Effects", audioProx: "Sounds will be added later.", idioma: "Language",
@@ -615,11 +675,12 @@ const TT = {
     fases: ["League", "Team", "Nationality", "Player"],
     pos: { ARQ: "Goalkeeper", LD: "Right back", LI: "Left back", DFC: "Centre back", MCD: "Defensive midfielder", MC: "Central midfielder", MCO: "Attacking midfielder", MD: "Right midfielder", MI: "Left midfielder", ED: "Right winger", EI: "Left winger", DC: "Striker" } },
   pt: {
+    cartaTrampa: "CARTA ARMADILHA", aplicar: "Aplicar carta", leyenda: "Lenda",
     creaTitulo: "Crie seu jogador", saltar: "Pular animação", borrarUsuario: "Apagar usuário", confirmarBorrar: "Apagar seu usuário e criar outro? Seu personagem será perdido (os recordes ficam).", dorsal: "Número (1 a 99)", piel: "Cor da pele", peinado: "Penteado", colorPelo: "Cor do cabelo", barba: "Barba", colorBarba: "Cor da barba", camiseta: "Camisa", guardarEntrar: "Salvar e entrar", giraArrastra: "Arraste para girar seu jogador", nombreObligatorio: "Digite seu nome de usuário para continuar.",
     peinados: ["Afro", "Curto", "Com franja", "Moicano", "Longo solto", "Rabo de cavalo", "Cachos", "Careca", "Topete", "Coque"], barbas: ["Sem barba", "Cavanhaque", "Pera", "Bigode", "Barba curta", "Barba longa", "Costeletas"], camisetas: ["Raio", "Selva", "Noite", "Sol"],
     felicitaciones: "PARABÉNS!", puntosTotales: "PONTOS TOTAIS", rankingBtn: "Ver ranking",
     unJugador: "UM JOGADOR", multijugador: "MULTIJOGADOR", opciones: "OPÇÕES", records: "RECORDES", salir: "SAIR", miPerfil: "MEU PERFIL", volver: "Voltar", menuBtn: "Menu", reiniciar: "Reiniciar seleção",
-    formacion: "Escolha sua formação:", empezar: "Começar", tocaPuesto: "Toque em um lugar vazio do campo para escolher essa posição", puestoElegido: "Posição", fase: "Fase", girar: "CHUTA", ayudaPatada: "Segure para carregar a força e solte para chutar", continuar: "Continuar", sumar: "Adicionar ao meu time",
+    formacion: "Escolha sua formação:", empezar: "Começar", tocaPuesto: "Toque em um lugar vazio do campo para escolher essa posição", puestoElegido: "Posição", fase: "Fase", girar: "CHUTA", ayudaPatada: "Aperte CHUTA quando a linha estiver na zona verde", zonas: {verde:"VERDE",amarillo:"AMARELO",naranja:"LARANJA",rojo:"VERMELHO"}, resGol: "GOOOL!", resAtaja: "DEFENDEU!", resAfuera: "PARA FORA!", continuar: "Continuar", sumar: "Adicionar ao meu time",
     jugadores: "Jogadores", nivelTotal: "Nível total", completo: "Time completo!", sinJugadores: "Não há jogadores carregados para esta posição", anios: "anos", usuario: "Usuário",
     sinRecords: "Ainda não há partidas. Monte seu primeiro time!", entraste: "Você entrou no Top 10! Posição", noEntraste: "Não foi suficiente para o Top 10. Tente de novo!", verRanking: "Ver ranking", jugarOtra: "Jogar de novo", felicitaciones: "PARABÉNS!", puntosTotales: "Pontos totais",
     video: "Vídeo", fondoAnimado: "Fundo animado", videoProx: "Mais ajustes de vídeo em breve.", audio: "Áudio", musica: "Música", efectos: "Efeitos", audioProx: "Os sons serão adicionados depois.", idioma: "Idioma",
@@ -628,11 +689,12 @@ const TT = {
     fases: ["Liga", "Time", "Nacionalidade", "Jogador"],
     pos: { ARQ: "Goleiro", LD: "Lateral direito", LI: "Lateral esquerdo", DFC: "Zagueiro central", MCD: "Volante", MC: "Meio-campista central", MCO: "Meia ofensivo", MD: "Meio-campista direito", MI: "Meio-campista esquerdo", ED: "Ponta direito", EI: "Ponta esquerdo", DC: "Centroavante" } },
   it: {
+    cartaTrampa: "CARTA TRAPPOLA", aplicar: "Applica carta", leyenda: "Leggenda",
     creaTitulo: "Crea il tuo giocatore", saltar: "Salta animazione", borrarUsuario: "Elimina utente", confirmarBorrar: "Eliminare il tuo utente e crearne un altro? Il personaggio andrà perso (i record restano).", dorsal: "Numero (da 1 a 99)", piel: "Colore della pelle", peinado: "Taglio di capelli", colorPelo: "Colore dei capelli", barba: "Barba", colorBarba: "Colore della barba", camiseta: "Maglia", guardarEntrar: "Salva ed entra", giraArrastra: "Trascina per ruotare il tuo giocatore", nombreObligatorio: "Scrivi il tuo nome utente per continuare.",
     peinados: ["Afro", "Corto", "Con frangia", "Mohicano", "Lungo sciolto", "Codino", "Ricci", "Calvo", "Ciuffo", "Chignon"], barbas: ["Senza barba", "Pizzetto", "Barbetta", "Baffi", "Barba corta", "Barba lunga", "Basette"], camisetas: ["Fulmine", "Giungla", "Notte", "Sole"],
     felicitaciones: "COMPLIMENTI!", puntosTotales: "PUNTI TOTALI", rankingBtn: "Vedi classifica",
     unJugador: "UN GIOCATORE", multijugador: "MULTIGIOCATORE", opciones: "OPZIONI", records: "RECORD", salir: "ESCI", miPerfil: "IL MIO PROFILO", volver: "Indietro", menuBtn: "Menu", reiniciar: "Riavvia selezione",
-    formacion: "Scegli il tuo modulo:", empezar: "Inizia", tocaPuesto: "Tocca un posto vuoto del campo per scegliere quel ruolo", puestoElegido: "Ruolo", fase: "Fase", girar: "TIRA", ayudaPatada: "Tieni premuto per caricare la forza e rilascia per tirare", continuar: "Continua", sumar: "Aggiungi alla mia squadra",
+    formacion: "Scegli il tuo modulo:", empezar: "Inizia", tocaPuesto: "Tocca un posto vuoto del campo per scegliere quel ruolo", puestoElegido: "Ruolo", fase: "Fase", girar: "TIRA", ayudaPatada: "Premi TIRA quando la linea è nella zona verde", zonas: {verde:"VERDE",amarillo:"GIALLO",naranja:"ARANCIO",rojo:"ROSSO"}, resGol: "GOOOL!", resAtaja: "PARATA!", resAfuera: "FUORI!", continuar: "Continua", sumar: "Aggiungi alla mia squadra",
     jugadores: "Giocatori", nivelTotal: "Livello totale", completo: "Squadra completa!", sinJugadores: "Nessun giocatore caricato per questo ruolo", anios: "anni", usuario: "Utente",
     sinRecords: "Ancora nessuna partita. Costruisci la tua prima squadra!", entraste: "Sei entrato nella Top 10! Posizione", noEntraste: "Non basta per la Top 10. Riprova!", verRanking: "Vedi classifica", jugarOtra: "Gioca ancora", felicitaciones: "COMPLIMENTI!", puntosTotales: "Punti totali",
     video: "Video", fondoAnimado: "Sfondo animato", videoProx: "Altre impostazioni video in arrivo.", audio: "Audio", musica: "Musica", efectos: "Effetti", audioProx: "I suoni saranno aggiunti più avanti.", idioma: "Lingua",
@@ -984,7 +1046,7 @@ function guardarPerfil() {
   ir("menu");
 }
 function limpiarPartida() {
-  slots = []; slotActivo = null; fase = 0; sel = {}; girando = false;
+  slots = []; slotActivo = null; fase = 0; sel = {}; girando = false; comodinPuesto = false;
   el("zonaRuleta").style.display = "none"; el("juego").style.display = "none"; el("inicio").style.display = "none";
   el("presentacion").classList.remove("visible"); el("aviso").textContent = L().tocaPuesto;
 }
@@ -1049,8 +1111,8 @@ function moverCilindro(seg) {
 let formSorteada = false;
 function girarFormaciones(pot) {
   girandoForm = true;
-  const dest = Math.floor(Math.random() * NOMBRES_FORM.length), falta = (((dest * PASO - angForm) % 360) + 360) % 360, seg = 4 + 4 * pot;
-  angForm += 360 * (3 + Math.round(9 * pot)) + falta; idxForm = dest; moverCilindro(seg); el("formNombre").textContent = "...";
+  const dest = Math.floor(Math.random() * NOMBRES_FORM.length), falta = (((dest * PASO - angForm) % 360) + 360) % 360, seg = 2.8 + 2.4 * pot;
+  angForm += 360 * (2 + Math.round(6 * pot)) + falta; idxForm = dest; moverCilindro(seg); el("formNombre").textContent = "...";
   setTimeout(function () { girandoForm = false; formSorteada = true; el("btnEmpezar").disabled = false; el("formNombre").textContent = NOMBRES_FORM[idxForm]; }, seg * 1000 + 200);
 }
 function abrirFormaciones() { formSorteada = false; el("btnEmpezar").disabled = true; el("selFormacion").classList.add("visible"); if (!el("cilindro").children.length) { armarCarrusel(); } PT2.reiniciar(); }
@@ -1062,7 +1124,7 @@ function empezarDraft() {
 }
 function cancelarPuesto() {
   if (girando || fase > 1) { return; }
-  PT1.detener(); el("zonaRuleta").style.display = "none"; slotActivo = null; fase = 0; sel = {}; el("aviso").textContent = L().tocaPuesto; dibujarCancha();
+  PT1.detener(); el("zonaRuleta").style.display = "none"; slotActivo = null; fase = 0; sel = {}; comodinPuesto = false; el("aviso").textContent = L().tocaPuesto; dibujarCancha();
 }
 
 // ===== Tabla del draft (los 11 jugadores que se van eligiendo) =====
@@ -1076,7 +1138,7 @@ function dibujarTabla() {
     const j = s.jugador, act = i === slotActivo ? " act" : "";
     if (j) {
       tot += j.nivel;
-      h += '<tr class="lleno' + act + '"><td>' + (i + 1) + "</td><td>" + s.pos + '</td><td class="nom">' + esc(j.nombre) + "</td><td>" + esc(j.equipo) + "</td><td>" + banderaHTML(j.nacionalidad) + esc(j.nacionalidad) + "</td><td>" + j.edad + '</td><td><span class="ins ' + claseNivel(j.nivel) + '">' + j.nivel + "</span></td></tr>";
+      h += '<tr class="lleno' + act + '"><td>' + (i + 1) + "</td><td>" + s.pos + '</td><td class="nom">' + esc(j.nombre) + "</td><td>" + esc(j.equipo) + "</td><td>" + banderaHTML(j.nacionalidad) + esc(j.nacionalidad) + "</td><td>" + edadTxt(j) + '</td><td><span class="ins ' + claseNivel(j.nivel) + '">' + j.nivel + "</span></td></tr>";
     } else {
       h += '<tr class="vacio' + act + '"><td>' + (i + 1) + "</td><td>" + s.pos + '</td><td colspan="5">' + POS[s.pos] + "</td></tr>";
     }
@@ -1105,9 +1167,12 @@ function dibujarRuleta() {
   z.style.setProperty("--cw", cw + "px"); z.style.setProperty("--chh", ch + "px");
   RR = n > 1 ? Math.max(cw * 0.9, n * cw * 1.1 / (2 * Math.PI)) : 0;
   const paso = 360 / n, tipo = NOMBRE_FASE[fase - 1];
-  el("cil3d").innerHTML = lista.map(function (txt, i) {
+  el("cil3d").innerHTML = lista.map(function (txt0, i) {
+    let txt = txt0;
+    const esC = txt === CARTA_ID, esL = txt === LIGA_LEGENDARIOS;
+    if (esC) { txt = L().cartaTrampa; }
     const fs = tamanoNombre(txt, cw), cod = BANDERAS[txt];
-    const adorno = cod ? '<span class="fl"><img src="img/flags/' + cod + '.svg" alt=""></span>' : '<span class="bl">⚽</span>';
+    const adorno = esC ? '<span class="bl">🃏</span>' : (esL ? '<span class="bl">⭐</span>' : cod ? '<span class="fl"><img src="img/flags/' + cod + '.svg" alt=""></span>' : '<span class="bl">⚽</span>');
     return '<div class="cr" style="transform:rotateY(' + (i * paso) + "deg) translateZ(" + RR + "px);background:linear-gradient(160deg," + PAL[i % 6][0] + "," + PAL[i % 6][1] + ')"><span class="tp">' + esc(tipo) + '</span>' + adorno + '<span class="nm" style="font-size:' + fs + 'px">' + esc(txt) + "</span></div>";
   }).join("");
   angReel = 0; poner(0, 0);
@@ -1117,10 +1182,44 @@ function poner(a, v) {
   el("cil3d").style.transform = "translateZ(-" + RR + "px) rotateY(" + (-a) + "deg)";
   const z = el("zonaRuleta"); z.style.setProperty("--v", v.toFixed(3)); z.style.setProperty("--giro", (a * 2) + "deg");
 }
-function girar(pot) {                 // pot: fuerza de la patada de 0 a 1 (el ganador siempre es al azar)
+// ===== Sorteo con suerte: todos pueden salir, pero los mejores (RELATIVO a su lista) salen más seguido =====
+const C_SUERTE = 2.8;
+function nivelDeOpcion(txt) {          // qué tan bueno es cada opción de la ruleta, según la fase
+  const d = disponibles();
+  if (fase === 4) { const j = d.filter(function (x) { return x.equipo === sel.equipo && x.nombre === txt; })[0]; return j ? j.nivel : 0; }
+  let grupo;
+  if (fase === 1) { grupo = d.filter(function (j) { return EQUIPOS[txt] && EQUIPOS[txt].indexOf(j.equipo) !== -1; }); }
+  else if (fase === 2) { grupo = d.filter(function (j) { return j.equipo === txt; }); }
+  else { grupo = d.filter(function (j) { return j.equipo === sel.equipo && j.nacionalidad === txt; }); }
+  const niv = grupo.map(function (j) { return j.nivel; }).sort(function (a, b) { return b - a; });
+  if (!niv.length) { return 0; }
+  if (fase === 1) { const t = niv.slice(0, 5); return t.reduce(function (a, b) { return a + b; }, 0) / t.length; }   // liga: promedio de sus 5 mejores en ese puesto
+  return niv[0];                                                                                                      // equipo / nacionalidad: su mejor jugador
+}
+function elegirConSuerte(k) {          // devuelve el índice ganador de "lista"
+  const n = lista.length; if (n < 2) { return 0; }
+  if (fase === 1) {                    // casilleros especiales: carta trampa (10 %) y Liga de Legendarios (6 % a 12 %, sube con la suerte)
+    const iC = lista.indexOf(CARTA_ID), iL = lista.indexOf(LIGA_LEGENDARIOS);
+    if (iC >= 0 && Math.random() < 0.10) { return iC; }
+    if (iL >= 0 && Math.random() < 0.06 + 0.06 * Math.max(0, Math.min(1, (k - 0.4) / 1.2))) { return iL; }
+    const resto = lista.map(function (x, i) { return i; }).filter(function (i) { return i !== iC && i !== iL; });
+    if (resto.length) { return elegirEntre(resto, k); }
+  }
+  return elegirEntre(lista.map(function (x, i) { return i; }), k);
+}
+function elegirEntre(idx, k) {         // sorteo por percentil dentro de los índices dados
+  const n = idx.length; if (n < 2) { return idx[0]; }
+  const v = idx.map(function (i) { return nivelDeOpcion(lista[i]); }), orden = v.map(function (x, i) { return i; }).sort(function (a, b) { return v[a] - v[b]; });
+  const pct = []; let i = 0;
+  while (i < n) { let j = i; while (j + 1 < n && v[orden[j + 1]] === v[orden[i]]) { j++; } const p = (i + j) / 2 / (n - 1); for (let q = i; q <= j; q++) { pct[orden[q]] = p; } i = j + 1; }
+  const w = pct.map(function (p) { return Math.exp(C_SUERTE * k * (p - 0.5)); }), tot = w.reduce(function (a, b) { return a + b; }, 0);
+  let r = Math.random() * tot; for (let m = 0; m < n; m++) { r -= w[m]; if (r <= 0) { return idx[m]; } }
+  return idx[n - 1];
+}
+function girar(pot, res) {             // pot: 0..1 (largo del giro) | res: resultado del penal { zona, res, k }
   girando = true;
-  const n = lista.length, paso = 360 / n, ganador = Math.floor(Math.random() * n);
-  const falta = (((ganador * paso - angReel) % 360) + 360) % 360, desde = angReel, total = 360 * (3 + Math.round(9 * pot)) + falta, dur = 4000 + 4000 * pot;
+  const n = lista.length, paso = 360 / n, ganador = elegirConSuerte(res ? res.k : 0.9);
+  const falta = (((ganador * paso - angReel) % 360) + 360) % 360, desde = angReel, total = 360 * (2 + Math.round(6 * pot)) + falta, dur = 2600 + 2200 * pot;
   let t0 = 0, prev = desde, tp = 0;
   function cuadro(ts) {
     if (!t0) { t0 = ts; tp = ts; }
@@ -1134,12 +1233,12 @@ function girar(pot) {                 // pot: fuerza de la patada de 0 a 1 (el g
 function terminarGiro(ganador) {
   poner(angReel, 0);
   const z = el("zonaRuleta"); z.classList.add("ganando"); el("cil3d").children[ganador].classList.add("gan");
-  setTimeout(function () { girando = false; z.classList.add("sale"); mostrarResultado(lista[ganador]); }, 1100);   // la ruleta se desvanece
+  setTimeout(function () { girando = false; z.classList.add("sale"); mostrarResultado(lista[ganador]); }, 700);   // la ruleta se desvanece
 }
 function crecerJuego() { const j = el("juego"); j.classList.remove("crece"); void j.offsetWidth; j.classList.add("crece"); }
 
 // ===== Patadas: una por ruleta de fases y otra para las formaciones =====
-const PT1 = PatadaAuto(el("cvPatada1"), el("botonGirar"), el("relleno1"), function (p) { el("escenaReel").classList.remove("tenue"); girar(p); }, function () { girando = true; }, el("zonaRuleta"));
+const PT1 = PatadaAuto(el("cvPatada1"), el("botonGirar"), el("relleno1"), function (p, res) { el("escenaReel").classList.remove("tenue"); girar(p, res); }, function () { girando = true; }, el("zonaRuleta"));
 const PT2 = PatadaAuto(el("cvPatada2"), el("btnGirarForm"), el("relleno2"), function (p) { girarFormaciones(p); }, function () { girandoForm = true; }, el("selFormacion"));
 // ===== Arranque =====
 ajustarFondo(); iniciarFondo(); aplicarIdioma();
