@@ -1183,7 +1183,7 @@ function poner(a, v) {
   const z = el("zonaRuleta"); z.style.setProperty("--v", v.toFixed(3)); z.style.setProperty("--giro", (a * 2) + "deg");
 }
 // ===== Sorteo con suerte: todos pueden salir, pero los mejores (RELATIVO a su lista) salen más seguido =====
-const C_SUERTE = 2.8;
+const C_FASE = { 1: 0.6, 2: 2.2, 3: 2.2, 4: 4.5 };   // cuánto pesa la suerte en cada ruleta (la de ligas casi pareja, la de jugadores la más fuerte)
 function nivelDeOpcion(txt) {          // qué tan bueno es cada opción de la ruleta, según la fase
   const d = disponibles();
   if (fase === 4) { const j = d.filter(function (x) { return x.equipo === sel.equipo && x.nombre === txt; })[0]; return j ? j.nivel : 0; }
@@ -1201,7 +1201,7 @@ function elegirConSuerte(k) {          // devuelve el índice ganador de "lista"
   if (fase === 1) {                    // casilleros especiales: carta trampa (10 %) y Liga de Legendarios (6 % a 12 %, sube con la suerte)
     const iC = lista.indexOf(CARTA_ID), iL = lista.indexOf(LIGA_LEGENDARIOS);
     if (iC >= 0 && Math.random() < 0.10) { return iC; }
-    if (iL >= 0 && Math.random() < 0.06 + 0.06 * Math.max(0, Math.min(1, (k - 0.4) / 1.2))) { return iL; }
+    if (iL >= 0 && Math.random() < 0.04 + 0.06 * Math.max(0, Math.min(1, k))) { return iL; }
     const resto = lista.map(function (x, i) { return i; }).filter(function (i) { return i !== iC && i !== iL; });
     if (resto.length) { return elegirEntre(resto, k); }
   }
@@ -1212,7 +1212,7 @@ function elegirEntre(idx, k) {         // sorteo por percentil dentro de los ín
   const v = idx.map(function (i) { return nivelDeOpcion(lista[i]); }), orden = v.map(function (x, i) { return i; }).sort(function (a, b) { return v[a] - v[b]; });
   const pct = []; let i = 0;
   while (i < n) { let j = i; while (j + 1 < n && v[orden[j + 1]] === v[orden[i]]) { j++; } const p = (i + j) / 2 / (n - 1); for (let q = i; q <= j; q++) { pct[orden[q]] = p; } i = j + 1; }
-  const w = pct.map(function (p) { return Math.exp(C_SUERTE * k * (p - 0.5)); }), tot = w.reduce(function (a, b) { return a + b; }, 0);
+  const w = pct.map(function (p) { return Math.exp(C_FASE[fase] * k * (p - 0.5)); }), tot = w.reduce(function (a, b) { return a + b; }, 0);
   let r = Math.random() * tot; for (let m = 0; m < n; m++) { r -= w[m]; if (r <= 0) { return idx[m]; } }
   return idx[n - 1];
 }

@@ -13,7 +13,7 @@ const BarraTiming = (function () {
   // Probabilidades de cada color: [gol, ataja el arquero, afuera]
   const PROB = { verde: [85, 10, 5], amarillo: [65, 22, 13], naranja: [45, 30, 25], rojo: [25, 35, 40] };
   // Qué tanto se inclina la suerte hacia los mejores jugadores (0 = todo al azar)
-  const SUERTE = { verde: 1.6, amarillo: 1.2, naranja: 0.9, rojo: 0.6 }, SUERTE_ATAJA = 0.5, SUERTE_AFUERA = 0.4;
+  const SUERTE = { verde: 1.5, amarillo: 1.0, naranja: 0.6, rojo: 0.2 }, SUERTE_ATAJA = -0.3, SUERTE_AFUERA = -0.6;
   const ORDEN = ["rojo", "naranja", "amarillo", "verde"];
   const COLOR = { verde: "#2ecc71", amarillo: "#ffd23f", naranja: "#f77f00", rojo: "#e63946" };
   const T_BARRIDO = 0.85, T_MIN = 0.5, ESPERA_INI = 0.8;   // segundos que tarda una pasada, mínimo, y espera antes de arrancar
