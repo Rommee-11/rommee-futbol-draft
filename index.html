@@ -263,6 +263,20 @@ canvas.cvPatada.gl { z-index: -1; }
 #rvDatos { font-size: clamp(15px, 4.4vw, 22px); margin-top: 8px; opacity: .95; }
 #rvBoton { display: none; margin: 18px auto 0; padding: 14px 34px; font-size: clamp(18px, 5vw, 26px); font-weight: 900; letter-spacing: 2px; border-radius: 999px; border: 3px solid #fff; background: linear-gradient(180deg, #ffe066, #f5a800); color: #3b2a00; cursor: pointer; box-shadow: 0 6px 0 #8a5a00, 0 10px 22px rgba(0,0,0,.5); touch-action: manipulation; }
 #rvBoton:active { transform: translateY(4px); box-shadow: 0 2px 0 #8a5a00; }
+
+/* ===== Las 6 zonas del arco para apuntar el penal ===== */
+.zonasTiro { display: none; position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.penal.pre .zonasTiro { display: block; }
+.zonasTiro.oculta { opacity: 0; transition: opacity .2s; pointer-events: none; }
+.zonasTiro.oculta .zonaT { pointer-events: none; }
+.zonaT { position: absolute; box-sizing: border-box; pointer-events: auto; cursor: pointer; border: 2px dashed rgba(255,255,255,.85); background: rgba(255,255,255,.10); color: rgba(255,255,255,.9); font-size: clamp(10px, 3vw, 15px); letter-spacing: 1px; text-shadow: 0 2px 3px #000; border-radius: 8px; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: background .12s, border-color .12s, transform .12s; }
+.zonaT:hover { background: rgba(255,255,255,.22); }
+.zonaT.sel { border: 3px solid #ffd23f; background: rgba(255,210,63,.38); color: #fff; box-shadow: 0 0 18px #ffd23f, inset 0 0 14px rgba(255,210,63,.6); transform: scale(1.03); }
+.hintZona { position: absolute; left: 0; right: 0; text-align: center; font-weight: 900; font-size: clamp(15px, 4.6vw, 24px); color: #fff; text-shadow: 0 3px 6px #000, 0 0 14px #000; pointer-events: none; }
+.hintZona.alerta { color: #ffd23f; animation: sacude .45s; }
+@keyframes sacude { 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+.zonasTiro.late .zonaT:not(.sel) { animation: parpadeaZ .6s 2; }
+@keyframes parpadeaZ { 50% { background: rgba(255,210,63,.45); border-color: #ffd23f; } }
 .penal.pre .btnSaltar { display: block; }
 .filaPatea { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .filaPatea .btnSaltar { margin: 0; }
@@ -734,7 +748,7 @@ const TT = {
     peinados: ["Afro", "Corto", "Con flequillo", "Mohicano", "Largo suelto", "Con colita", "Rulos", "Calvo", "Con jopo", "Con moño"], barbas: ["Sin barba", "Candado", "Perilla", "Bigote", "Barba corta", "Barba larga", "Patillas"], camisetas: ["Rayo", "Selva", "Noche", "Sol"],
     felicitaciones: "¡FELICITACIONES!", puntosTotales: "PUNTOS TOTALES", rankingBtn: "Ver ranking",
     unJugador: "UN JUGADOR", multijugador: "MULTIJUGADOR", opciones: "OPCIONES", records: "RECORDS", salir: "SALIR", miPerfil: "MI PERFIL", volver: "Volver", menuBtn: "Menú", reiniciar: "Reiniciar selección",
-    formacion: "Elegí tu formación:", empezar: "Empezar", tocaPuesto: "Tocá un lugar vacío de la cancha para elegir ese puesto", puestoElegido: "Puesto elegido", fase: "Fase", girar: "PATEA", ayudaPatada: "Apretá PATEA cuando la línea esté en la zona verde", zonas: {verde:"VERDE",amarillo:"AMARILLO",naranja:"NARANJA",rojo:"ROJO"}, resGol: "¡GOOOL!", resAtaja: "¡LO ATAJÓ!", resAfuera: "¡AFUERA!", continuar: "Continuar", sumar: "Sumar a mi equipo",
+    formacion: "Elegí tu formación:", empezar: "Empezar", tocaPuesto: "Tocá un lugar vacío de la cancha para elegir ese puesto", puestoElegido: "Puesto elegido", fase: "Fase", girar: "PATEA", ayudaPatada: "Elegí una zona del arco y apretá PATEA cuando la línea esté en verde", zonas: {verde:"VERDE",amarillo:"AMARILLO",naranja:"NARANJA",rojo:"ROJO"}, resGol: "¡GOOOL!", resAtaja: "¡LO ATAJÓ!", resAfuera: "¡AFUERA!", continuar: "Continuar", sumar: "Sumar a mi equipo",
     jugadores: "Jugadores", nivelTotal: "Nivel total", completo: "¡Equipo completo!", sinJugadores: "No hay jugadores cargados para este puesto", anios: "años", usuario: "Usuario",
     sinRecords: "Todavía no hay partidas. ¡Armá tu primer equipo!", entraste: "¡Entraste al Top 10! Puesto", noEntraste: "No alcanzó para el Top 10. ¡Probá de nuevo!", verRanking: "Ver ranking", jugarOtra: "Jugar de nuevo", felicitaciones: "¡FELICITACIONES!", puntosTotales: "Puntos totales",
     video: "Video", fondoAnimado: "Fondo animado", videoProx: "Más ajustes de video próximamente.", audio: "Audio", musica: "Música", efectos: "Efectos", audioProx: "Los sonidos se agregarán más adelante.", idioma: "Idioma",
@@ -748,7 +762,7 @@ const TT = {
     peinados: ["Afro", "Short", "Fringe", "Mohawk", "Long loose", "Ponytail", "Curls", "Bald", "Quiff", "Bun"], barbas: ["No beard", "Goatee", "Soul patch", "Moustache", "Short beard", "Long beard", "Sideburns"], camisetas: ["Bolt", "Jungle", "Night", "Sun"],
     felicitaciones: "CONGRATULATIONS!", puntosTotales: "TOTAL POINTS", rankingBtn: "View ranking",
     unJugador: "SINGLE PLAYER", multijugador: "MULTIPLAYER", opciones: "OPTIONS", records: "RECORDS", salir: "EXIT", miPerfil: "MY PROFILE", volver: "Back", menuBtn: "Menu", reiniciar: "Restart selection",
-    formacion: "Choose your formation:", empezar: "Start", tocaPuesto: "Tap an empty spot on the pitch to pick that position", puestoElegido: "Position", fase: "Step", girar: "KICK", ayudaPatada: "Press KICK when the line is in the green zone", zonas: {verde:"GREEN",amarillo:"YELLOW",naranja:"ORANGE",rojo:"RED"}, resGol: "GOOOAL!", resAtaja: "SAVED!", resAfuera: "MISSED!", continuar: "Continue", sumar: "Add to my team",
+    formacion: "Choose your formation:", empezar: "Start", tocaPuesto: "Tap an empty spot on the pitch to pick that position", puestoElegido: "Position", fase: "Step", girar: "KICK", ayudaPatada: "Pick a zone of the goal and press KICK when the line is in the green", zonas: {verde:"GREEN",amarillo:"YELLOW",naranja:"ORANGE",rojo:"RED"}, resGol: "GOOOAL!", resAtaja: "SAVED!", resAfuera: "MISSED!", continuar: "Continue", sumar: "Add to my team",
     jugadores: "Players", nivelTotal: "Total rating", completo: "Team complete!", sinJugadores: "No players loaded for this position", anios: "years old", usuario: "User",
     sinRecords: "No games yet. Build your first team!", entraste: "You made the Top 10! Rank", noEntraste: "Not enough for the Top 10. Try again!", verRanking: "View ranking", jugarOtra: "Play again", felicitaciones: "CONGRATULATIONS!", puntosTotales: "Total points",
     video: "Video", fondoAnimado: "Animated background", videoProx: "More video settings coming soon.", audio: "Audio", musica: "Music", efectos: "Effects", audioProx: "Sounds will be added later.", idioma: "Language",
@@ -762,7 +776,7 @@ const TT = {
     peinados: ["Afro", "Curto", "Com franja", "Moicano", "Longo solto", "Rabo de cavalo", "Cachos", "Careca", "Topete", "Coque"], barbas: ["Sem barba", "Cavanhaque", "Pera", "Bigode", "Barba curta", "Barba longa", "Costeletas"], camisetas: ["Raio", "Selva", "Noite", "Sol"],
     felicitaciones: "PARABÉNS!", puntosTotales: "PONTOS TOTAIS", rankingBtn: "Ver ranking",
     unJugador: "UM JOGADOR", multijugador: "MULTIJOGADOR", opciones: "OPÇÕES", records: "RECORDES", salir: "SAIR", miPerfil: "MEU PERFIL", volver: "Voltar", menuBtn: "Menu", reiniciar: "Reiniciar seleção",
-    formacion: "Escolha sua formação:", empezar: "Começar", tocaPuesto: "Toque em um lugar vazio do campo para escolher essa posição", puestoElegido: "Posição", fase: "Fase", girar: "CHUTA", ayudaPatada: "Aperte CHUTA quando a linha estiver na zona verde", zonas: {verde:"VERDE",amarillo:"AMARELO",naranja:"LARANJA",rojo:"VERMELHO"}, resGol: "GOOOL!", resAtaja: "DEFENDEU!", resAfuera: "PARA FORA!", continuar: "Continuar", sumar: "Adicionar ao meu time",
+    formacion: "Escolha sua formação:", empezar: "Começar", tocaPuesto: "Toque em um lugar vazio do campo para escolher essa posição", puestoElegido: "Posição", fase: "Fase", girar: "CHUTA", ayudaPatada: "Escolha uma zona do gol e aperte CHUTA quando a linha estiver no verde", zonas: {verde:"VERDE",amarillo:"AMARELO",naranja:"LARANJA",rojo:"VERMELHO"}, resGol: "GOOOL!", resAtaja: "DEFENDEU!", resAfuera: "PARA FORA!", continuar: "Continuar", sumar: "Adicionar ao meu time",
     jugadores: "Jogadores", nivelTotal: "Nível total", completo: "Time completo!", sinJugadores: "Não há jogadores carregados para esta posição", anios: "anos", usuario: "Usuário",
     sinRecords: "Ainda não há partidas. Monte seu primeiro time!", entraste: "Você entrou no Top 10! Posição", noEntraste: "Não foi suficiente para o Top 10. Tente de novo!", verRanking: "Ver ranking", jugarOtra: "Jogar de novo", felicitaciones: "PARABÉNS!", puntosTotales: "Pontos totais",
     video: "Vídeo", fondoAnimado: "Fundo animado", videoProx: "Mais ajustes de vídeo em breve.", audio: "Áudio", musica: "Música", efectos: "Efeitos", audioProx: "Os sons serão adicionados depois.", idioma: "Idioma",
@@ -776,7 +790,7 @@ const TT = {
     peinados: ["Afro", "Corto", "Con frangia", "Mohicano", "Lungo sciolto", "Codino", "Ricci", "Calvo", "Ciuffo", "Chignon"], barbas: ["Senza barba", "Pizzetto", "Barbetta", "Baffi", "Barba corta", "Barba lunga", "Basette"], camisetas: ["Fulmine", "Giungla", "Notte", "Sole"],
     felicitaciones: "COMPLIMENTI!", puntosTotales: "PUNTI TOTALI", rankingBtn: "Vedi classifica",
     unJugador: "UN GIOCATORE", multijugador: "MULTIGIOCATORE", opciones: "OPZIONI", records: "RECORD", salir: "ESCI", miPerfil: "IL MIO PROFILO", volver: "Indietro", menuBtn: "Menu", reiniciar: "Riavvia selezione",
-    formacion: "Scegli il tuo modulo:", empezar: "Inizia", tocaPuesto: "Tocca un posto vuoto del campo per scegliere quel ruolo", puestoElegido: "Ruolo", fase: "Fase", girar: "TIRA", ayudaPatada: "Premi TIRA quando la linea è nella zona verde", zonas: {verde:"VERDE",amarillo:"GIALLO",naranja:"ARANCIO",rojo:"ROSSO"}, resGol: "GOOOL!", resAtaja: "PARATA!", resAfuera: "FUORI!", continuar: "Continua", sumar: "Aggiungi alla mia squadra",
+    formacion: "Scegli il tuo modulo:", empezar: "Inizia", tocaPuesto: "Tocca un posto vuoto del campo per scegliere quel ruolo", puestoElegido: "Ruolo", fase: "Fase", girar: "TIRA", ayudaPatada: "Scegli una zona della porta e premi TIRA quando la linea è nel verde", zonas: {verde:"VERDE",amarillo:"GIALLO",naranja:"ARANCIO",rojo:"ROSSO"}, resGol: "GOOOL!", resAtaja: "PARATA!", resAfuera: "FUORI!", continuar: "Continua", sumar: "Aggiungi alla mia squadra",
     jugadores: "Giocatori", nivelTotal: "Livello totale", completo: "Squadra completa!", sinJugadores: "Nessun giocatore caricato per questo ruolo", anios: "anni", usuario: "Utente",
     sinRecords: "Ancora nessuna partita. Costruisci la tua prima squadra!", entraste: "Sei entrato nella Top 10! Posizione", noEntraste: "Non basta per la Top 10. Riprova!", verRanking: "Vedi classifica", jugarOtra: "Gioca ancora", felicitaciones: "COMPLIMENTI!", puntosTotales: "Punti totali",
     video: "Video", fondoAnimado: "Sfondo animato", videoProx: "Altre impostazioni video in arrivo.", audio: "Audio", musica: "Musica", efectos: "Effetti", audioProx: "I suoni saranno aggiunti più avanti.", idioma: "Lingua",

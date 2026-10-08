@@ -207,11 +207,53 @@ const PenalMundo = (function () {
 //  cuando(fuerza) = cuando la pelota llega a primer plano, alSoltar() = al soltar,
 //  panel = pantalla que muestra la ruleta (se oculta hasta que llega la pelota)
 // =====================================================================
+const TXT_ZONA = {
+  es: { elegi: "👆 Elegí a dónde patear", apuntas: "Apuntás: ", f: ["Abajo", "Arriba"], c: ["Izquierda", "Centro", "Derecha"], sin: "¡Primero elegí una zona del arco!" },
+  en: { elegi: "👆 Pick where to shoot", apuntas: "Aiming: ", f: ["Bottom", "Top"], c: ["Left", "Center", "Right"], sin: "Pick a zone of the goal first!" },
+  pt: { elegi: "👆 Escolha onde chutar", apuntas: "Mira: ", f: ["Baixo", "Alto"], c: ["Esquerda", "Centro", "Direita"], sin: "Escolha primeiro uma zona do gol!" },
+  it: { elegi: "👆 Scegli dove tirare", apuntas: "Mira: ", f: ["Basso", "Alto"], c: ["Sinistra", "Centro", "Destra"], sin: "Prima scegli una zona della porta!" }
+};
+function txtZona() { return TXT_ZONA[(typeof ajustes !== "undefined" && ajustes.idioma) || "es"] || TXT_ZONA.es; }
 function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   const M = PenalMundo, T = THREE;
-  let giroIni = 1.25, est = "off", raf = 0, ts0 = 0, tSuelta = 0, fija = 0, zIni = 2.9, lado = 1, destino = new T.Vector3(), dur = 0.6, frente = null, keeperLado = 1, keeperTarde = false, res = null, arcoAlto = 0;
+  const ZX = [-2.55, 0, 2.55], ZY = [0.5, 1.95];          // dónde queda cada zona del arco (metros): columnas izq/centro/der y filas abajo/arriba
+  let zonaSel = null, keeperTarde = false;
+  const Z_APUNTAR = 0.9;                                  // mientras apuntás la cámara se acerca un poco para que el arco se vea más grande
+  let giroIni = 1.25, est = "off", raf = 0, ts0 = 0, tSuelta = 0, fija = 0, zIni = 2.9, lado = 1, destino = new T.Vector3(), dur = 0.6, frente = null, res = null;
   const BAR = BarraTiming.crear(relleno.parentNode, relleno);
   const rt = document.createElement("div"); rt.className = "resPenal"; if (panel) { panel.appendChild(rt); }
+  // ---------- Las 6 zonas del arco para apuntar (botones transparentes encima del arco 3D) ----------
+  const zon = document.createElement("div"); zon.className = "zonasTiro"; if (panel) { panel.appendChild(zon); }
+  const hint = document.createElement("div"); hint.className = "hintZona"; zon.appendChild(hint);
+  const zb = [], ESTRELLAS = [["★★", "★", "★★"], ["★★★", "★★", "★★★"]];       // premio de cada zona (fila 0 abajo, fila 1 arriba)
+  [1, 0].forEach(function (f) { [0, 1, 2].forEach(function (c) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "zonaT"; b.dataset.c = c; b.dataset.f = f; b.textContent = ESTRELLAS[f][c];
+    b.addEventListener("pointerdown", function (e) { e.stopPropagation(); if (e.preventDefault) { e.preventDefault(); } if (est === "espera") { zonaSel = { c: c, f: f }; pintarZonas(); } });
+    zon.appendChild(b); zb.push(b);
+  }); });
+  function pintarZonas() {
+    const t = txtZona();
+    zb.forEach(function (b) { b.classList.toggle("sel", !!zonaSel && +b.dataset.c === zonaSel.c && +b.dataset.f === zonaSel.f); });
+    hint.className = "hintZona"; hint.textContent = zonaSel ? t.apuntas + t.f[zonaSel.f] + " · " + t.c[zonaSel.c] : t.elegi;
+  }
+  function avisarZona() {
+    const t = txtZona(); hint.textContent = t.sin; hint.className = "hintZona alerta"; zon.classList.remove("late"); void zon.offsetWidth; zon.classList.add("late");
+  }
+  function ubicarZonas() {                                           // proyecta el arco 3D a la pantalla para que cada botón quede justo sobre su zona
+    const c = lienzo(); if (!c || !panel || !M.listo()) { return; }
+    const cam = M.cam(); cam.updateMatrixWorld();
+    const cr = c.getBoundingClientRect(), zr = zon.getBoundingClientRect(), v = new T.Vector3();
+    if (!zr.width) { return; }
+    function pt(x, y) { v.set(x, y, M.GZ).project(cam); return [cr.left + (v.x + 1) / 2 * cr.width - zr.left, cr.top + (1 - v.y) / 2 * cr.height - zr.top]; }
+    zb.forEach(function (b) {
+      const c0 = +b.dataset.c, f = +b.dataset.f, x0 = -3.66 + c0 * 2.44, x1 = x0 + 2.44, y0 = f * 1.22, y1 = y0 + 1.22;
+      const p = [pt(x0, y0), pt(x1, y0), pt(x0, y1), pt(x1, y1)], xs = p.map(function (a) { return a[0]; }), ys = p.map(function (a) { return a[1]; });
+      let L = Math.min.apply(null, xs), Rr = Math.max.apply(null, xs), Tt = Math.min.apply(null, ys), Bb = Math.max.apply(null, ys);
+      if (f === 1) { Tt -= 14; } else { Bb += 14; } if (c0 === 0) { L -= 10; } if (c0 === 2) { Rr += 10; }          // zona de toque un poco más grande que el dibujo
+      b.style.left = L.toFixed(1) + "px"; b.style.top = Tt.toFixed(1) + "px"; b.style.width = (Rr - L).toFixed(1) + "px"; b.style.height = (Bb - Tt).toFixed(1) + "px";
+    });
+    hint.style.top = Math.max(4, Math.min.apply(null, zb.map(function (b) { return parseFloat(b.style.top); })) - 44) + "px";
+  }
   function lienzo() { return M.renderer() ? M.renderer().domElement : null; }
   function ponerPelotaEnElPunto() {
     M.balon().position.set(0, M.BALON_R, 0); M.balon().rotation.set(0, 0, 0);
@@ -222,21 +264,15 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
     k.sombra.scale.set(0.9, 0.9, 1); g.sombra.scale.set(0.9, 0.9, 1);
     g.sombra.position.set(0, 0.012, 0); k.sombra.position.set(0, 0.012, 0);
   }
-  // Dónde va la pelota según el resultado que salió en la barra
+  // Dónde va la pelota: a la zona que elegiste (si es gol entra ahí, si ataja el arquero llega ahí, si es afuera se va por arriba o al costado)
   function elegirTiro(r) {
-    lado = Math.random() < 0.5 ? -1 : 1; arcoAlto = 0;
-    if (r === "gol") {
-      const alto = Math.random() < 0.6;
-      destino.set(lado * (2.3 + Math.random() * 1.0), alto ? 1.6 + Math.random() * 0.55 : 0.4 + Math.random() * 0.5, M.GZ - 0.5 - Math.random() * 0.8);
-      keeperTarde = Math.random() < 0.45; keeperLado = keeperTarde ? lado : -lado;
-    } else if (r === "ataja") {
-      destino.set(lado * (1.3 + Math.random() * 1.3), 0.5 + Math.random() * 1.0, M.GZ + 0.5);
-      keeperTarde = false; keeperLado = lado;
-    } else {                                           // afuera: por arriba del travesaño o al costado del palo
-      if (Math.random() < 0.5) { destino.set(lado * (0.4 + Math.random() * 2.6), 3.0 + Math.random() * 0.6, M.GZ - 0.4); }
-      else { destino.set(lado * (4.5 + Math.random() * 1.0), 0.6 + Math.random() * 1.2, M.GZ - 0.4); }
-      keeperTarde = true; keeperLado = lado;
-    }
+    const t = r.tiro, jx = (Math.random() - 0.5) * 0.5, jy = (Math.random() - 0.5) * 0.3;
+    lado = t.c === 0 ? -1 : (t.c === 2 ? 1 : (Math.random() < 0.5 ? -1 : 1));
+    if (r.res === "gol") { destino.set(ZX[t.c] + jx, ZY[t.f] + jy, M.GZ - 0.5 - Math.random() * 0.8); }
+    else if (r.res === "ataja") { destino.set(ZX[t.c] + jx * 0.4, ZY[t.f] + jy * 0.4, M.GZ + 0.5); }
+    else if (t.f === 1) { destino.set(ZX[t.c] + jx, 3.0 + Math.random() * 0.6, M.GZ - 0.4); }           // arriba: por encima del travesaño
+    else { destino.set(lado * (4.5 + Math.random() * 1.0), 0.6 + Math.random() * 1.2, M.GZ - 0.4); }    // abajo: pasa al costado del palo
+    keeperTarde = r.res === "gol" && r.keeper.c === t.c && r.keeper.f === t.f;                        // adivinó la zona pero el tiro era muy bueno: llega tarde
   }
   function esperaKeeper(ts) {
     const g = M.keeper(), s = Math.sin(ts / 520);
@@ -244,16 +280,20 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
     M.aplicar(g, M.mezcla(M.pose.GK_ESPERA, M.pose.GK_ESPERA, 0));
     g.sombra.position.x = 0;
   }
-  function moverKeeper(ub, ts) {        // ub = segundos desde que la pelota sale del pie
+  function moverKeeper(ub, ts) {        // ub = segundos desde que la pelota sale del pie. El arquero se tira a SU zona (al azar)
     const g = M.keeper();
     if (ub < 0.08) { esperaKeeper(ts); return; }
-    let k, alcance;
-    if (res.res === "ataja") { k = M.suave((ub - 0.05) / (dur * 0.9)); alcance = Math.min(2.9, Math.abs(destino.x)); }
-    else if (res.res === "afuera") { k = 0.6 * M.suave((ub - 0.1) / (dur * 1.1)); alcance = 1.4; }
-    else { k = M.suave((ub / LENTO - 0.08) / (keeperTarde ? 0.95 : 0.6)); alcance = keeperTarde ? 1.6 : 2.5; }
-    g.raiz.position.set(keeperLado * alcance * k, 0.55 * Math.sin(Math.min(1, k) * Math.PI) * (keeperTarde ? 0.7 : 1), M.GZ + 0.35);
-    g.raiz.rotation.set(0, 0, -keeperLado * 1.25 * k);
-    M.aplicar(g, M.mezcla(M.pose.GK_ESPERA, M.pose.GK_VUELO, k));
+    const kc = res.keeper.c, alto = res.keeper.f === 1, dir = kc - 1;     // dir: -1 izquierda, 0 centro, 1 derecha
+    const k = M.suave((ub - 0.05) / (dur * (keeperTarde ? 1.5 : 0.9)));
+    if (dir !== 0) {
+      g.raiz.position.set(ZX[kc] * k, (alto ? 0.95 : 0.35) * Math.sin(Math.min(1, k) * Math.PI) * (keeperTarde ? 0.7 : 1) + (alto ? 0.25 * k : 0), M.GZ + 0.35);
+      g.raiz.rotation.set(0, 0, -dir * (alto ? 1.0 : 1.35) * k);
+      M.aplicar(g, M.mezcla(M.pose.GK_ESPERA, M.pose.GK_VUELO, k));
+    } else {                                                              // al medio: salta con los brazos arriba o se agacha
+      g.raiz.position.set(Math.sin(ts / 520) * 0.45 * (1 - k), (alto ? 0.7 : 0.0) * Math.sin(Math.min(1, k) * Math.PI), M.GZ + 0.35);
+      g.raiz.rotation.set(0, 0, 0);
+      M.aplicar(g, M.mezcla(M.pose.GK_ESPERA, M.pose.GK_VUELO, (alto ? 1 : 0.4) * k));
+    }
   }
   const CAMA = new T.Vector3(1.5, 1.8, 4.9), CAM1 = new T.Vector3(-0.5, 1.8, -17.6), CAMC = new T.Vector3(9.5, 2.7, -12.5);
   let _s0 = null;
@@ -274,7 +314,7 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
     if (est === "espera") {
       const resp = Math.sin(ts / 700) * 0.012;
       k.raiz.position.set(0, 0, zIni); k.raiz.rotation.y = Math.PI - 1.25; M.aplicar(k, Object.assign({}, M.pose.ESPERA, { bajo: resp }));
-      esperaKeeper(ts); M.ponerCamara(M.CAM0, M.LOOK0);
+      esperaKeeper(ts); M.ponerCamara(M.CAM0, M.LOOK0); M.zoom(Z_APUNTAR);
       BAR.actualizar(ts);
     } else if (est === "patada") {
       const u = (ts - tSuelta) / 1000 * VEL, zK = 0.62, gol = res.res === "gol";
@@ -326,7 +366,7 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       const s1 = M.suave((u - 0.3) / (UG + dur - 0.3)), s2 = M.suave((uBalon - (dur - 0.1)) / FASE2);
       const w = M.suave(uBalon / (dur * 0.5)), objetivo = _ob.copy(M.LOOK0).lerp(_pa.set(b.position.x, b.position.y + 0.1, b.position.z), w);
       miraAct.lerp(objetivo, 1 - Math.exp(-dtc * (s2 > 0 ? 9 : 7)));
-      M.ponerCamara(bezier(_pc.copy(M.CAM0).lerp(CAMA, s1), CAMC, CAM1, s2), miraAct); M.zoom(1 - 0.12 * s1 - 0.1 * s2);
+      M.ponerCamara(bezier(_pc.copy(M.CAM0).lerp(CAMA, s1), CAMC, CAM1, s2), miraAct); M.zoom((Z_APUNTAR + (1 - Z_APUNTAR) * M.suave(u / 0.6)) * (1 - 0.12 * s1 - 0.1 * s2));
     }
     M.dibujar();
     if (est !== "fin" && est !== "off") { raf = requestAnimationFrame(cuadro); }
@@ -341,15 +381,17 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   const NOM_ZONA = function () { return (typeof L === "function" && L().zonas) || null; };
   function patear() {                                  // se apretó PATEA: la línea se frena donde está
     if (est !== "espera") { return; }
+    if (!zonaSel) { avisarZona(); return; }                          // primero hay que apuntar
     const r = BAR.parar(NOM_ZONA());
     if (!r) { return; }
-    res = r; fija = Math.random(); est = "patada"; tSuelta = ts0; btn.disabled = true; frente = null;
+    res = BarraTiming.resolverTiro(zonaSel, r); fija = Math.random(); est = "patada"; tSuelta = ts0; btn.disabled = true; frente = null;
+    zon.classList.add("oculta");
     dur = (0.62 - 0.22 * Math.random()) * LENTO; miraAct.copy(M.LOOK0);
-    elegirTiro(res.res); CAM1.x = destino.x * 0.3; alSoltar();
+    elegirTiro(res); CAM1.x = destino.x * 0.3; alSoltar();
   }
   function saltar() {
     if (est !== "espera" && est !== "patada") { return; }
-    if (est === "espera") { res = BarraTiming.resultado("naranja"); fija = Math.random(); alSoltar(); btn.disabled = true; BAR.detener(); }
+    if (est === "espera") { res = BarraTiming.resolverTiro(zonaSel || { c: Math.floor(Math.random() * 3), f: Math.floor(Math.random() * 2) }, { zona: "naranja" }); fija = Math.random(); alSoltar(); btn.disabled = true; BAR.detener(); zon.classList.add("oculta"); }
     est = "skip"; terminar(true);
   }
   const bs = document.createElement("button"); bs.className = "btnSaltar"; bs.type = "button";
@@ -359,7 +401,7 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   btn.addEventListener("pointerdown", function (e) { try { btn.setPointerCapture(e.pointerId); } catch (x) {} if (e.preventDefault) { e.preventDefault(); } patear(); });
   btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
   btn.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); patear(); } });
-  window.addEventListener("resize", function () { if (est !== "off" && est !== "fin" && M.listo()) { M.medir(); frente = null; } });
+  window.addEventListener("resize", function () { if (est !== "off" && est !== "fin" && M.listo()) { M.medir(); frente = null; if (est === "espera") { M.zoom(Z_APUNTAR); ubicarZonas(); } } });
   return {
     reiniciar: function () {
       cancelAnimationFrame(raf);
@@ -371,10 +413,11 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       cv.style.display = "none";
       if (panel) { panel.classList.add("penal", "pre"); }
       bs.textContent = (typeof L === "function" && L().saltar) || "Skip ⏭";
-      M.medir(); est = "espera"; res = null; btn.disabled = false; zIni = 2.9; giroIni = 1.25; frente = null; rt.className = "resPenal"; tPrev = 0;
+      zonaSel = null; zon.classList.remove("oculta"); pintarZonas();
+      M.medir(); M.zoom(Z_APUNTAR); est = "espera"; res = null; btn.disabled = false; zIni = 2.9; giroIni = 1.25; frente = null; rt.className = "resPenal"; tPrev = 0;
       BAR.iniciar(opcionesPenal());
       ponerPelotaEnElPunto(); sombrasFiguras(); M.red().scale.z = 1; M.huella().visible = false; M.keeper().raiz.visible = true; M.keeper().raiz.rotation.set(0, 0, 0);
-      raf = requestAnimationFrame(cuadro);
+      raf = requestAnimationFrame(cuadro); ubicarZonas();
     },
     detener: function () {
       cancelAnimationFrame(raf); est = "off"; BAR.detener(); rt.className = "resPenal";

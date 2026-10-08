@@ -30,6 +30,34 @@ const BarraTiming = (function () {
     const res = r < p[0] ? "gol" : (r < p[0] + p[1] ? "ataja" : "afuera");
     return { zona: zona, res: res, k: res === "gol" ? SUERTE[zona] : (res === "ataja" ? SUERTE_ATAJA : SUERTE_AFUERA) };
   }
+  // ---------- 6 ZONAS DEL ARCO: fila 0 = abajo, fila 1 = arriba | columna 0 = izquierda, 1 = centro, 2 = derecha ----------
+  // Chance de patear AFUERA aunque la puntería sea perfecta (arriba y a la esquina = más riesgo)
+  const FALLA = [[0.07, 0.03, 0.07], [0.20, 0.10, 0.20]];
+  const FALLA_X = { verde: 0.35, amarillo: 1.1, naranja: 2.3, rojo: 3.6 };           // cuánto empeora esa chance según el color de la barra
+  // Si el arquero se tira JUSTO a la misma zona: chance de atajar según el color, y qué tan difícil es llegar a esa zona
+  const ATAJA_EXACTA = { verde: 0.55, amarillo: 0.75, naranja: 0.90, rojo: 0.97 };
+  const ALCANCE = [[0.95, 1.0, 0.95], [0.75, 0.90, 0.75]];
+  // Si se tira al mismo lado pero a otra altura (el centro es más fácil de cubrir)
+  const ATAJA_COLUMNA = { verde: 0.6, amarillo: 1.0, naranja: 1.3, rojo: 1.6 }, COLUMNA_BASE = [0.14, 0.30, 0.14];
+  // Si el tiro sale flojo (mala puntería) el arquero a veces llega igual
+  const ATAJA_FLOJO = { verde: 0, amarillo: 0.09, naranja: 0.24, rojo: 0.42 };
+  // Premio por meter gol en cada zona (suma a la suerte de las ruletas): esquinas de arriba = más premio
+  const PREMIO = [[0.05, 0.0, 0.05], [0.15, 0.08, 0.15]];
+  // tiro = { c: columna, f: fila } | color = resultado de la barra { zona: "verde"... } -> sortea gol / ataja / afuera y a dónde se tira el arquero
+  function resolverTiro(tiro, color) {
+    const col = color.zona, kp = { c: Math.floor(Math.random() * 3), f: Math.floor(Math.random() * 2) };   // el arquero se tira al azar a una de las 6 zonas
+    let res = "gol";
+    if (Math.random() < Math.min(0.9, FALLA[tiro.f][tiro.c] * FALLA_X[col])) { res = "afuera"; }
+    else {
+      let p;
+      if (kp.c === tiro.c && kp.f === tiro.f) { p = ATAJA_EXACTA[col] * ALCANCE[tiro.f][tiro.c]; }
+      else if (kp.c === tiro.c) { p = COLUMNA_BASE[tiro.c] * ATAJA_COLUMNA[col]; }
+      else { p = ATAJA_FLOJO[col]; }
+      if (Math.random() < p) { res = "ataja"; kp.c = tiro.c; kp.f = tiro.f; }                  // cuando ataja, se lo ve llegar justo a donde fue el tiro
+    }
+    const k = res === "gol" ? SUERTE[col] + PREMIO[tiro.f][tiro.c] : (res === "ataja" ? SUERTE_ATAJA : SUERTE_AFUERA);
+    return { zona: col, res: res, k: k, tiro: { c: tiro.c, f: tiro.f }, keeper: kp };
+  }
   function crear(barra, relleno) {
     relleno.style.display = "none";
     const cur = document.createElement("div"); cur.className = "cursorB"; barra.appendChild(cur);
@@ -74,7 +102,7 @@ const BarraTiming = (function () {
       PROB: PROB, SUERTE: SUERTE, resultado: resultado, zonaEn: zonaEn
     };
   }
-  return { crear: crear, resultado: resultado, PROB: PROB, SUERTE: SUERTE, COLOR: COLOR };
+  return { crear: crear, resultado: resultado, resolverTiro: resolverTiro, PROB: PROB, SUERTE: SUERTE, COLOR: COLOR };
 })();
 
 // Modificadores que activan las cartas (se gastan en el siguiente penal)
