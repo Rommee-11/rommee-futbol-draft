@@ -144,10 +144,18 @@ const PenalMundo = (function () {
     sombraBalon = new T.Mesh(new T.PlaneGeometry(0.5, 0.5), new T.MeshBasicMaterial({ map: texSombra(), transparent: true, depthWrite: false })); sombraBalon.rotation.x = -Math.PI / 2; escena.add(sombraBalon);
     // jugadores: el que patea es el personaje del usuario; ROMME alienta al costado del arco
     ponerJugador(typeof perfil !== "undefined" ? perfil : {});
-    keeper = figura({ piel: 0xc98f66, pelo: 0x2a1a10, camisa: 0xe8c200, short: 0x1b1b1b, media: 0x1b1b1b, guante: 0x39d353, mangaLarga: true, bota: 0x222222 });
+    keeper = Per3D.figuraArquero();
     keeper.raiz.position.set(0, 0, GZ + 0.35); escena.add(keeper.raiz);
     romme = Per3D.figuraDePerfil(Per3D.ROMME); romme.raiz.position.set(-6.6, 0, GZ - 1.4); romme.raiz.scale.setScalar(1.12); escena.add(romme.raiz);
     listo = true;
+    if (window.Avatar3D) { Avatar3D.alListo(recargarFiguras); }
+  }
+  // cuando termina de cargar el modelo anime, cambiamos los muñecos viejos por los personajes nuevos
+  function recargarFiguras() {
+    if (!listo) { return; }
+    if (keeper && !keeper.vrm) { const pk = keeper.raiz.position.clone(); escena.remove(keeper.raiz); keeper = Per3D.figuraArquero(); keeper.raiz.position.copy(pk); escena.add(keeper.raiz); }
+    if (romme && !romme.vrm) { const pr = romme.raiz.position.clone(); escena.remove(romme.raiz); romme = Per3D.figuraDePerfil(Per3D.ROMME); romme.raiz.position.copy(pr); romme.raiz.scale.setScalar(1.12); escena.add(romme.raiz); }
+    if (kicker && !kicker.vrm) { const pp = typeof perfil !== "undefined" ? perfil : {}; const rot = kicker.raiz.rotation.y; escena.remove(kicker.raiz); kicker = null; firmaJugador = ""; ponerJugador(pp); kicker.raiz.rotation.y = rot; }
   }
   function ponerJugador(p) {
     const f = Per3D.firma(p || {});

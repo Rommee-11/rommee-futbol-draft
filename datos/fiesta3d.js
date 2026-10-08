@@ -74,6 +74,10 @@ const Fiesta3D = (function () {
     copa = crearCopa(); esc.add(copa);
     romme = Per3D.figuraDePerfil(Per3D.ROMME); romme.raiz.position.set(-2.9, 0, -0.6); romme.raiz.rotation.y = 0.45; esc.add(romme.raiz);
     listo = true;
+    if (window.Avatar3D) { Avatar3D.alListo(function () {
+      if (romme && !romme.vrm) { const pr = romme.raiz.position.clone(), ry = romme.raiz.rotation.y; esc.remove(romme.raiz); romme = Per3D.figuraDePerfil(Per3D.ROMME); romme.raiz.position.copy(pr); romme.raiz.rotation.y = ry; esc.add(romme.raiz); }
+      if (jugador && !jugador.vrm) { const pp = typeof perfil !== "undefined" ? perfil : {}; esc.remove(jugador.raiz); jugador = null; firma = ""; poner(pp); }
+    }); }
   }
   function poner(p) {
     const f = Per3D.firma(p || {});

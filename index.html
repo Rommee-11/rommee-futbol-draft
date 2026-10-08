@@ -468,8 +468,11 @@ canvas.cvPatada.gl { z-index: -1; }
 <script src="datos/barra.js"></script>
 <script src="datos/avatar.js"></script>
 <script src="datos/personaje3d.js"></script>
+<script src="datos/vrm-lib.js"></script>
+<script src="datos/avatar-vrm.js"></script>
 <script src="datos/penal3d.js"></script>
 <script src="datos/fiesta3d.js"></script>
+<script>if (window.Avatar3D) { setTimeout(function () { Avatar3D.precargar(); }, 1200); Avatar3D.alListo(function () { try { if (typeof borrador !== "undefined" && borrador && el("cvCreador") && el("cvCreador").style.display !== "none" && el("opcionesCreador").innerHTML) { dibujarPerfil(); } } catch (e) {} }); }</script>
 <script>
     // Nombres de cada puesto
     const POS = { ARQ: "Arquero", LD: "Lateral derecho", LI: "Lateral izquierdo", DFC: "Defensor central", MCD: "Medio defensivo",
@@ -1131,7 +1134,7 @@ function dibujarPerfil() {
     '<h4>' + d.nombreUsuario + '</h4><input type="text" id="inpNombre" maxlength="12" value="' + esc(borrador.nombre) + '" oninput="borrador.nombre=this.value;refrescarVisor()">' +
     '<h4>' + d.dorsal + '</h4><input type="number" id="inpDorsal" min="1" max="99" value="' + borrador.dorsal + '" oninput="cambiarDorsal(this.value)">' +
     "<h4>" + d.piel + "</h4>" + sw("piel", PIELES2, borrador.piel) +
-    "<h4>" + d.peinado + "</h4>" + ob("pelo", d.peinados, borrador.pelo) +
+    (window.Avatar3D && Avatar3D.listo() ? "" : "<h4>" + d.peinado + "</h4>" + ob("pelo", d.peinados, borrador.pelo)) +      // con el personaje anime hay un solo peinado (cambia solo el color)
     "<h4>" + d.colorPelo + "</h4>" + sw("colPelo", COLORES2, borrador.colPelo) +
     "<h4>" + d.barba + "</h4>" + ob("barba", d.barbas, borrador.barba) +
     (borrador.barba ? "<h4>" + d.colorBarba + "</h4>" + sw("colBarba", COLORES2, borrador.colBarba) : "") +

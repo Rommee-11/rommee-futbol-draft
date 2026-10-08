@@ -237,13 +237,25 @@ const Per3D = (function () {
   function figuraDePerfil(p) {
     p = p || {};
     const k = Math.max(0, Math.min(4, p.camisa | 0)), cm = CAMISAS[k];
+    if (window.Avatar3D && Avatar3D.listo()) {                      // personaje estilo anime (modelo VRM)
+      return Avatar3D.crear({
+        piel: col(p.piel == null ? 1 : p.piel, PIELES), pelo: col(p.colPelo == null ? 0 : p.colPelo, COLORES), identidad: p === ROMME,
+        camisa: cm.base, manga: cm.manga, short: cm.short, media: cm.media, lentes: !!p.lentes, barba: p.barba | 0,
+        colBarba: col(p.colBarba == null ? (p.colPelo == null ? 0 : p.colPelo) : p.colBarba, COLORES)
+      });
+    }
     return figura({
       piel: col(p.piel == null ? 1 : p.piel, PIELES), pelo: col(p.colPelo == null ? 0 : p.colPelo, COLORES), peloEstilo: p.pelo == null ? 1 : p.pelo,
       barbaEstilo: p.barba | 0, colBarba: col(p.colBarba == null ? (p.colPelo == null ? 0 : p.colPelo) : p.colBarba, COLORES),
       camisaTex: texCamisa(k), espalda: texEspalda(k, p.nombre, p.dorsal), manga: cm.manga, short: cm.short, media: cm.media, lentes: !!p.lentes
     });
   }
-  function firma(p) { return JSON.stringify([p.nombre, p.dorsal, p.piel, p.pelo, p.colPelo, p.barba, p.colBarba, p.camisa, p.lentes]); }
+  // Arquero: camiseta amarilla, short negro y guantes verdes
+  function figuraArquero() {
+    if (window.Avatar3D && Avatar3D.listo()) { return Avatar3D.crear({ piel: "#c98f66", pelo: "#2a1a10", camisa: "#e8c200", manga: "#1b1b1b", short: "#1b1b1b", media: "#1b1b1b", bota: "#222222", guantes: "#39d353" }); }
+    return figura({ piel: 0xc98f66, pelo: 0x2a1a10, camisa: 0xe8c200, short: 0x1b1b1b, media: 0x1b1b1b, guante: 0x39d353, mangaLarga: true, bota: 0x222222 });
+  }
+  function firma(p) { return (window.Avatar3D && Avatar3D.listo() ? "v" : "m") + JSON.stringify([p.nombre, p.dorsal, p.piel, p.pelo, p.colPelo, p.barba, p.colBarba, p.camisa, p.lentes]); }
 
   // ---------- Poses ----------
   function pose0() { return { hL: 0, hR: 0, kL: 0.05, kR: 0.05, sL: 0.05, sR: 0.05, eL: 0.25, eR: 0.25, aL: 0.12, aR: 0.12, incl: 0, giro: 0, cab: 0, bajo: 0 }; }
@@ -254,6 +266,7 @@ const Per3D = (function () {
     f.torso.rotation.x = p.incl; f.torso.rotation.y = p.giro + 0.09 * (p.hL - p.hR); f.cuello.rotation.y = p.cab - 0.05 * (p.hL - p.hR);   // el torso y la cabeza acompañan el paso
     f.cabeza.rotation.x = -0.45 * p.incl;                                                                                      // la cabeza se mantiene mirando al frente
     f.cadera.position.y = 0.88 - p.bajo;
+    if (f.sync) { f.sync(p); }                                   // personaje VRM: mover también los huesos del modelo
   }
   function suave(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
   function fotograma(fr, u) {
@@ -277,6 +290,7 @@ const Per3D = (function () {
       if (fig) { esc.remove(fig.raiz); }
       ultimo = p; fig = figuraDePerfil(p); esc.add(fig.raiz);
     }
+    if (window.Avatar3D) { Avatar3D.alListo(function () { if (ultimo) { poner(ultimo); } }); }
     function cuadro(ts) {
       if (!activo) { return; }
       if (fig) {
@@ -312,7 +326,7 @@ const Per3D = (function () {
   return {
     PIELES: PIELES, COLORES: COLORES, N_PELO: N_PELO, N_BARBA: N_BARBA, N_CAMISA: N_CAMISA, CAMISAS: CAMISAS, ROMME: ROMME,
     dibujarMiniatura: dibujarMiniatura, lienzo: lienzo, textura: textura, mat: mat, texCamisa: texCamisa, texSombra: texSombra, texBrillo: texBrillo, texPublico: texPublico,
-    figura: figura, figuraDePerfil: figuraDePerfil, firma: firma, vistaPrevia: vistaPrevia,
+    figura: figura, figuraDePerfil: figuraDePerfil, figuraArquero: figuraArquero, matT: matT, firma: firma, vistaPrevia: vistaPrevia,
     pose0: pose0, mezcla: mezcla, aplicar: aplicar, suave: suave, fotograma: fotograma, P: P
   };
 })();
