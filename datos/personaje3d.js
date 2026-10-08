@@ -23,6 +23,26 @@ const Per3D = (function () {
     return t;
   }
   function mat(color, extra) { return new T.MeshLambertMaterial(Object.assign({ color: color }, extra || {})); }
+  // ---------- Estilo anime: sombreado en escalones + contorno negro ----------
+  let gradT = null;
+  function grad() {
+    if (!gradT) { gradT = new T.DataTexture(new Uint8Array([95, 95, 95, 255, 160, 160, 160, 255, 220, 220, 220, 255]), 3, 1, T.RGBAFormat); gradT.minFilter = gradT.magFilter = T.NearestFilter; gradT.generateMipmaps = false; gradT.needsUpdate = true; }
+    return gradT;
+  }
+  function matTx(o) { return new T.MeshToonMaterial(Object.assign({ gradientMap: grad() }, o)); }
+  function matT(color, extra) { return matTx(Object.assign({ color: color }, extra || {})); }
+  function matB(color) { return new T.MeshBasicMaterial({ color: color }); }          // ojos: color plano, sin sombra
+  let matCont = null;
+  function contornear(raiz) {                                                           // casco invertido: copia más grande, negra, que solo se ve por detrás
+    if (!matCont) {
+      matCont = new T.ShaderMaterial({ side: T.BackSide, uniforms: { grosor: { value: 0.0085 } },
+        vertexShader: "uniform float grosor; void main(){ vec3 p = position + normalize(normal) * grosor; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }",
+        fragmentShader: "void main(){ gl_FragColor = vec4(0.04, 0.03, 0.07, 1.0); }" });
+    }
+    const lista = [];
+    raiz.traverse(function (m) { if (m.isMesh && m.material && m.material.isMeshToonMaterial && !m.material.transparent) { lista.push(m); } });
+    lista.forEach(function (m) { const c = new T.Mesh(m.geometry, matCont); c.renderOrder = -1; m.add(c); });
+  }
   function col(v, lista) { return typeof v === "string" ? v : lista[v | 0] || lista[0]; }
 
   // ---------- Camisetas (cada una con su diseño propio) ----------
@@ -101,12 +121,12 @@ const Per3D = (function () {
   // o: piel, pelo (color), peloEstilo 0..9, barbaEstilo 0..6, colBarba, camisaTex, manga, short, media, lentes, guante, mangaLarga, bota
   function figura(o) {
     const raiz = new T.Group(), cadera = new T.Group(); cadera.position.y = 0.88; raiz.add(cadera);
-    const piel = mat(o.piel), camis = o.camisaTex ? new T.MeshLambertMaterial({ map: o.camisaTex }) : mat(o.camisa), short = mat(o.short), media = mat(o.media), guante = mat(o.guante || o.piel);
-    const camisManga = o.manga ? mat(o.manga) : camis;
+    const piel = matT(o.piel), camis = o.camisaTex ? matTx({ map: o.camisaTex }) : matT(o.camisa), short = matT(o.short), media = matT(o.media), guante = matT(o.guante || o.piel);
+    const camisManga = o.manga ? matT(o.manga) : camis;
     const torso = new T.Group(); cadera.add(torso);
     const tm = new T.Mesh(new T.CapsuleGeometry(0.16, 0.3, 4, 14), camis); tm.scale.set(1.22, 1, 0.8); tm.position.y = 0.31; torso.add(tm);
     if (o.espalda) {
-      const L = 1.7, de = new T.Mesh(new T.CylinderGeometry(0.1655, 0.1655, 0.3, 20, 1, true, Math.PI - L / 2, L), new T.MeshLambertMaterial({ map: o.espalda, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+      const L = 1.7, de = new T.Mesh(new T.CylinderGeometry(0.1655, 0.1655, 0.3, 20, 1, true, Math.PI - L / 2, L), matTx({ map: o.espalda, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
       de.scale.set(1.22, 1, 0.8); de.position.y = 0.305; torso.add(de);
     }
     const cin = new T.Mesh(new T.CylinderGeometry(0.2, 0.2, 0.1, 16), short); cin.scale.set(1.1, 1, 0.8); cin.position.y = 0.02; torso.add(cin);
@@ -117,7 +137,7 @@ const Per3D = (function () {
     const nariz = new T.Mesh(new T.SphereGeometry(0.026, 10, 8), piel); nariz.position.set(0, -0.02, 0.15); cabeza.add(nariz);
 
     // ----- peinados -----
-    const negro = mat(o.pelo);
+    const negro = matT(o.pelo);
     const add = function (geo, x, y, z, sx, sy, sz) { const m = new T.Mesh(geo, negro); m.position.set(x, y, z); if (sx) { m.scale.set(sx, sy, sz); } cabeza.add(m); return m; };
     const gorro = function (th, ry) { const pe = new T.Mesh(new T.SphereGeometry(0.158, 20, 14, 0, 6.3, 0, th), negro); pe.position.y = 0.012; pe.rotation.x = ry || -0.18; cabeza.add(pe); };
     const ps = o.peloEstilo == null ? 1 : o.peloEstilo;
@@ -146,18 +166,32 @@ const Per3D = (function () {
     }
     else if (ps === 9) { gorro(1.25); add(new T.SphereGeometry(0.07, 12, 10), 0, 0.19, -0.03); add(new T.SphereGeometry(0.03, 8, 6), 0, 0.14, -0.03); }   // moño
 
+    // mechones puntiagudos tipo manga (solo estilos de pelo corto)
+    const pincho = function (x, y, z, rx, rz, L, r) { const m = new T.Mesh(new T.ConeGeometry(r, L, 6), negro); m.position.set(x, y, z); m.rotation.set(rx, 0, rz); cabeza.add(m); };
+    if (ps === 1 || ps === 2 || ps === 8 || ps === 9) {
+      pincho(0, 0.165, 0.045, -0.5, 0, 0.16, 0.05); pincho(-0.07, 0.15, 0.05, -0.4, 0.55, 0.14, 0.045); pincho(0.07, 0.15, 0.05, -0.4, -0.55, 0.14, 0.045);
+      pincho(-0.12, 0.1, 0.0, -0.1, 0.95, 0.13, 0.04); pincho(0.12, 0.1, 0.0, -0.1, -0.95, 0.13, 0.04); pincho(0, 0.15, -0.07, 0.6, 0, 0.15, 0.05);
+      pincho(-0.06, 0.125, 0.115, -1.3, 0.25, 0.1, 0.03); pincho(0.04, 0.128, 0.118, -1.3, -0.2, 0.09, 0.03);
+    }
     // ----- cara -----
     if (o.lentes) {
       const lm = new T.MeshPhongMaterial({ color: 0x0a0a0a, shininess: 90, specular: 0x8899aa });
       [-1, 1].forEach(function (s) { const l = new T.Mesh(new T.BoxGeometry(0.1, 0.06, 0.03), lm); l.position.set(s * 0.058, 0.035, 0.142); l.rotation.y = s * 0.28; cabeza.add(l); });
       const pu = new T.Mesh(new T.BoxGeometry(0.04, 0.012, 0.02), lm); pu.position.set(0, 0.05, 0.15); cabeza.add(pu);
     } else {
-      [-1, 1].forEach(function (s) { const oj = new T.Mesh(new T.SphereGeometry(0.018, 8, 6), mat(0x111111)); oj.position.set(s * 0.055, 0.03, 0.142); cabeza.add(oj); });
+      [-1, 1].forEach(function (s) {                                  // ojos estilo anime: blanco grande, iris de color, pupila y brillo
+        const gr = new T.Group(); gr.position.set(s * 0.058, 0.03, 0.134); gr.rotation.y = s * 0.3; cabeza.add(gr);
+        const bl = new T.Mesh(new T.SphereGeometry(0.033, 12, 10), matB(0xffffff)); bl.scale.set(0.95, 1.25, 0.28); gr.add(bl);
+        const ir = new T.Mesh(new T.SphereGeometry(0.026, 12, 10), matB(o.ojos || 0x2a7fd0)); ir.scale.set(0.9, 1.15, 0.2); ir.position.set(0, -0.003, 0.012); gr.add(ir);
+        const pu = new T.Mesh(new T.SphereGeometry(0.014, 10, 8), matB(0x05080f)); pu.scale.set(0.9, 1.2, 0.2); pu.position.set(0, -0.003, 0.02); gr.add(pu);
+        const br = new T.Mesh(new T.SphereGeometry(0.007, 8, 6), matB(0xffffff)); br.position.set(s * -0.008, 0.012, 0.026); br.scale.set(1, 1, 0.3); gr.add(br);
+        const ce = new T.Mesh(new T.BoxGeometry(0.075, 0.014, 0.02), matT(o.pelo)); ce.position.set(s * 0.058, 0.082, 0.14); ce.rotation.z = -s * 0.22; ce.rotation.y = s * 0.3; cabeza.add(ce);   // ceja marcada
+      });
     }
-    const boca = new T.Mesh(new T.BoxGeometry(0.05, 0.01, 0.01), mat(0x5a2a22)); boca.position.set(0, -0.06, 0.145); cabeza.add(boca);
+    const boca = new T.Mesh(new T.BoxGeometry(0.05, 0.01, 0.01), matT(0x5a2a22)); boca.position.set(0, -0.06, 0.145); cabeza.add(boca);
 
     // ----- barbas -----
-    const bm = mat(o.colBarba || o.pelo), bs = o.barbaEstilo | 0;
+    const bm = matT(o.colBarba || o.pelo), bs = o.barbaEstilo | 0;
     const bad = function (geo, x, y, z, sx, sy, sz) { const m = new T.Mesh(geo, bm); m.position.set(x, y, z); if (sx) { m.scale.set(sx, sy, sz); } cabeza.add(m); return m; };
     const bigote = function () { bad(new T.BoxGeometry(0.085, 0.022, 0.025), 0, -0.043, 0.148); [-1, 1].forEach(function (s) { bad(new T.SphereGeometry(0.014, 6, 6), s * 0.045, -0.052, 0.145); }); };
     const mandibula = function () { const sh = new T.Mesh(new T.SphereGeometry(0.1585, 24, 14, 0, 6.3, 2.08, 1.0), bm); sh.scale.set(0.95, 1.08, 1); cabeza.add(sh); };
@@ -189,11 +223,12 @@ const Per3D = (function () {
       const canilla = new T.Mesh(new T.CapsuleGeometry(0.062, 0.22, 4, 10), piel); canilla.position.y = -0.19; rodilla.add(canilla);
       const med = new T.Mesh(new T.CylinderGeometry(0.07, 0.066, 0.25, 12), media); med.position.y = -0.24; rodilla.add(med);
       const tobillo = new T.Group(); tobillo.position.y = -0.4; rodilla.add(tobillo);
-      const bota = new T.Mesh(new T.BoxGeometry(0.11, 0.075, 0.27), mat(o.bota || 0x151515)); bota.position.set(0, -0.03, 0.06); tobillo.add(bota);
+      const bota = new T.Mesh(new T.BoxGeometry(0.11, 0.075, 0.27), matT(o.bota || 0x151515)); bota.position.set(0, -0.03, 0.06); tobillo.add(bota);
       piernas.push({ cad: pierna, rod: rodilla, lado: s });
     });
     const sombra = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: texSombra(), transparent: true, depthWrite: false }));
     sombra.rotation.x = -Math.PI / 2; sombra.position.y = 0.012; raiz.add(sombra);
+    contornear(raiz);
     return { raiz: raiz, cadera: cadera, torso: torso, cuello: cuello, cabeza: cabeza, brazos: brazos, piernas: piernas, sombra: sombra };
   }
 
@@ -216,7 +251,8 @@ const Per3D = (function () {
   function aplicar(f, p) {
     f.piernas.forEach(function (l) { const L = l.lado > 0; l.cad.rotation.x = -(L ? p.hL : p.hR); l.rod.rotation.x = L ? p.kL : p.kR; });
     f.brazos.forEach(function (b) { const L = b.lado > 0; b.hombro.rotation.x = -(L ? p.sL : p.sR); b.hombro.rotation.z = b.lado * (L ? p.aL : p.aR); b.codo.rotation.x = -(L ? p.eL : p.eR); });
-    f.torso.rotation.x = p.incl; f.torso.rotation.y = p.giro; f.cuello.rotation.y = p.cab;
+    f.torso.rotation.x = p.incl; f.torso.rotation.y = p.giro + 0.09 * (p.hL - p.hR); f.cuello.rotation.y = p.cab - 0.05 * (p.hL - p.hR);   // el torso y la cabeza acompañan el paso
+    f.cabeza.rotation.x = -0.45 * p.incl;                                                                                      // la cabeza se mantiene mirando al frente
     f.cadera.position.y = 0.88 - p.bajo;
   }
   function suave(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
