@@ -96,10 +96,40 @@ const Fiesta3D = (function () {
       const cc = i % 3 ? c : c2; f.col[k * 3] = cc.r; f.col[k * 3 + 1] = cc.g; f.col[k * 3 + 2] = cc.b; f.vida[k] = rnd(1.4, 2.2);
     }
   }
+  let kDist = 1;
   function medir() {
     W = window.innerWidth; H = window.innerHeight; R.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1)); R.setSize(W, H, false);
-    cam.aspect = W / H;
-    const hf = 56 * Math.PI / 180; cam.fov = Math.min(75, 2 * Math.atan(Math.tan(hf / 2) / cam.aspect) * 180 / Math.PI); cam.updateProjectionMatrix();
+    cam.aspect = W / H; cam.fov = 40; cam.updateProjectionMatrix();
+    kDist = cam.aspect < 1 ? 1.8 : 1;
+    if (cam.aspect < 1) { cam.setViewOffset(W, H, 0, H * 0.13, W, H); } else { cam.clearViewOffset(); }   // en celular vertical el jugador queda arriba, libre de los paneles                          // en celular vertical la cámara se aleja un poco para que entren los brazos
+  }
+  // ---------- Cámaras de cine: planos a medio cuerpo con movimientos suaves ----------
+  // cada plano: posición de la cámara y punto al que mira (el jugador está en el origen y mira hacia +z)
+  const PLANOS = [
+    { p: [0.35, 1.72, 2.6], l: [0, 1.6, 0] },      // frente, medio cuerpo con la copa
+    { p: [1.9, 1.6, 2.1], l: [0, 1.55, 0] },       // tres cuartos desde la derecha
+    { p: [0.3, 1.8, 1.45], l: [0, 1.75, 0] },      // primer plano de la cara
+    { p: [-1.0, 0.85, 2.4], l: [0, 1.9, 0] },      // desde abajo, a lo héroe
+    { p: [-0.9, 1.65, -2.5], l: [0, 1.55, 0] },    // por la espalda: se ve el nombre y el número
+    { p: [-1.9, 1.6, 2.0], l: [0, 1.55, 0] }       // tres cuartos desde la izquierda
+  ];
+  const DUR_PLANO = 4.4, T_MEZCLA = 1.3;
+  const _p0 = typeof T !== "undefined" ? new T.Vector3() : null, _p1 = _p0 && new T.Vector3(), _l0 = _p0 && new T.Vector3(), _l1 = _p0 && new T.Vector3();
+  function vistaPlano(i, loc, t, pos, mira) {
+    const P = PLANOS[i % PLANOS.length], k = loc / DUR_PLANO;
+    mira.set(P.l[0], P.l[1], P.l[2]);
+    pos.set(P.p[0], P.p[1], P.p[2]).sub(mira).multiplyScalar(kDist * (1 - 0.07 * k)).add(mira);   // se acerca muy despacio durante el plano
+    pos.x += 0.07 * Math.sin(t * 0.9 + i); pos.y += 0.035 * Math.sin(t * 0.7 + i * 2);                   // respiración de la cámara
+  }
+  function camaraCine(t) {
+    t = Math.max(0, t);
+    const i = Math.floor(t / DUR_PLANO), loc = t - i * DUR_PLANO;
+    vistaPlano(i, loc, t, _p1, _l1);
+    if (i > 0 && loc < T_MEZCLA) {
+      const w0 = loc / T_MEZCLA, w = w0 * w0 * (3 - 2 * w0);
+      vistaPlano(i - 1, DUR_PLANO + loc, t, _p0, _l0); _p1.lerp(_p0, 1 - w); _l1.lerp(_l0, 1 - w);
+    }
+    cam.position.copy(_p1); cam.lookAt(_l1);
   }
   function cuadro(ts) {
     if (!activo) { return; }
@@ -113,7 +143,7 @@ const Fiesta3D = (function () {
     Per3D.aplicar(r, Per3D.P({ sL: 2.8 + 0.3 * b, sR: 2.8 - 0.3 * b, eL: 0.25, eR: 0.25, aL: 0.5, aR: 0.5, hL: 0.12 * b, hR: -0.12 * b, kL: 0.2, kR: 0.2 }));
     r.raiz.position.y = Math.abs(Math.sin(t * 3.4 + 1)) * 0.18;
     // cámara: apenas se mueve para que se sienta viva
-    cam.position.set(Math.sin(t * 0.35) * 0.9, 1.2, 6.4); cam.lookAt(0, 1.55, 0);
+    camaraCine(t);
     // hinchas aplaudiendo
     const h = hinchas, o = h.o;
     for (let i = 0; i < NF; i++) {

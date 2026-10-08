@@ -234,25 +234,34 @@ const Per3D = (function () {
 
   // Personaje armado a partir del perfil del usuario (o de ROMME)
   const ROMME = { nombre: "ROMMEE", dorsal: 11, piel: "#e0ac84", pelo: 10, colPelo: "#0a0a0a", barba: 1, colBarba: "#0a0a0a", camisa: 4, lentes: true };
+  // botines: color principal + color de la suela/tapones (cada jugador usa uno distinto según su nombre y dorsal)
+  const BOTINES = [["#ff6a00", "#1a1a1a"], ["#18b8ff", "#ffffff"], ["#e8e8e8", "#222222"], ["#ff2bd1", "#1a1a1a"], ["#a8ff00", "#1a1a1a"], ["#ffd400", "#1a1a1a"], ["#e63232", "#f2f2f2"], ["#7a3cff", "#f2f2f2"], ["#111111", "#ff6a00"], ["#00d68f", "#1a1a1a"]];
+  function botinDe(p) {
+    if (p === ROMME) { return BOTINES[1]; }
+    const t = String(p.nombre || "") + "|" + (p.dorsal == null ? "" : p.dorsal); let h = 0; for (let i = 0; i < t.length; i++) { h = (h * 31 + t.charCodeAt(i)) >>> 0; }
+    return BOTINES[h % BOTINES.length];
+  }
   function figuraDePerfil(p) {
     p = p || {};
+    const bt = botinDe(p);
     const k = Math.max(0, Math.min(4, p.camisa | 0)), cm = CAMISAS[k];
     if (window.Avatar3D && Avatar3D.listo()) {                      // personaje estilo anime (modelo VRM)
       return Avatar3D.crear({
         piel: col(p.piel == null ? 1 : p.piel, PIELES), pelo: col(p.colPelo == null ? 0 : p.colPelo, COLORES), identidad: p === ROMME,
         camisa: cm.base, manga: cm.manga, short: cm.short, media: cm.media, lentes: !!p.lentes, barba: p.barba | 0,
+        nombre: p.nombre, dorsal: p.dorsal, txtColor: cm.txt, txtBorde: cm.borde, bota: bt[0], suela: bt[1],
         colBarba: col(p.colBarba == null ? (p.colPelo == null ? 0 : p.colPelo) : p.colBarba, COLORES)
       });
     }
     return figura({
       piel: col(p.piel == null ? 1 : p.piel, PIELES), pelo: col(p.colPelo == null ? 0 : p.colPelo, COLORES), peloEstilo: p.pelo == null ? 1 : p.pelo,
       barbaEstilo: p.barba | 0, colBarba: col(p.colBarba == null ? (p.colPelo == null ? 0 : p.colPelo) : p.colBarba, COLORES),
-      camisaTex: texCamisa(k), espalda: texEspalda(k, p.nombre, p.dorsal), manga: cm.manga, short: cm.short, media: cm.media, lentes: !!p.lentes
+      bota: new T.Color(bt[0]).getHex(), camisaTex: texCamisa(k), espalda: texEspalda(k, p.nombre, p.dorsal), manga: cm.manga, short: cm.short, media: cm.media, lentes: !!p.lentes
     });
   }
   // Arquero: camiseta amarilla, short negro y guantes verdes
   function figuraArquero() {
-    if (window.Avatar3D && Avatar3D.listo()) { return Avatar3D.crear({ piel: "#c98f66", pelo: "#2a1a10", camisa: "#e8c200", manga: "#1b1b1b", short: "#1b1b1b", media: "#1b1b1b", bota: "#222222", guantes: "#39d353" }); }
+    if (window.Avatar3D && Avatar3D.listo()) { return Avatar3D.crear({ piel: "#c98f66", pelo: "#2a1a10", camisa: "#e8c200", manga: "#1b1b1b", short: "#1b1b1b", media: "#1b1b1b", bota: "#1d1d1d", suela: "#39d353", guantes: "#39d353" }); }
     return figura({ piel: 0xc98f66, pelo: 0x2a1a10, camisa: 0xe8c200, short: 0x1b1b1b, media: 0x1b1b1b, guante: 0x39d353, mangaLarga: true, bota: 0x222222 });
   }
   function firma(p) { return (window.Avatar3D && Avatar3D.listo() ? "v" : "m") + JSON.stringify([p.nombre, p.dorsal, p.piel, p.pelo, p.colPelo, p.barba, p.colBarba, p.camisa, p.lentes]); }

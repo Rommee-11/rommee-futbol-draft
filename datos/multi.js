@@ -69,7 +69,7 @@ const Multi = (function () {
     ".tablaM.turno { border-color: #ffd23f; } .tablaM.fuera { opacity: .45; }",
     ".tablaM h4 { margin: 0 0 6px 0; color: #8fdcff; font-size: 15px; }",
     ".tablaM .fl { display: flex; justify-content: space-between; gap: 6px; padding: 1px 0; } .tablaM .fl b { color: #ffd700; }",
-    "#finMulti { position: fixed; inset: 0; z-index: 80; display: none; background: rgba(3,26,46,.9); overflow-y: auto; text-align: center; padding: 14px; box-sizing: border-box; }",
+    "#finMulti { position: fixed; inset: 0; z-index: 80; display: none; background: radial-gradient(ellipse at 50% 30%, #3a2a6a, #0b0a1e 75%); text-align: center; padding: 0; box-sizing: border-box; }",
     "#finMulti canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }",
     "#finMulti .panel { position: relative; text-align: center; }",
     ".rankFila { display: flex; justify-content: space-between; padding: 8px 12px; margin: 6px 0; border-radius: 10px; background: rgba(255,255,255,.08); font-weight: bold; }",
@@ -78,12 +78,12 @@ const Multi = (function () {
   document.head.appendChild(st);
   const eTurno = document.createElement("div"); eTurno.id = "mTurno"; document.body.appendChild(eTurno);
   const eEsp = document.createElement("div"); eEsp.id = "espect"; document.body.appendChild(eEsp);
-  const eFin = document.createElement("div"); eFin.id = "finMulti"; eFin.innerHTML = '<canvas id="cvFiestaM"></canvas><div class="panel" id="finMultiPanel"></div>'; document.body.appendChild(eFin);
+  const eFin = document.createElement("div"); eFin.id = "finMulti"; eFin.innerHTML = '<canvas id="cvFiestaM"></canvas><div class="finGrid" id="finMultiGrid"></div>'; document.body.appendChild(eFin);
 
   // ---------- utilidades ----------
   function claveAzar() { let c = ""; for (let i = 0; i < 5; i++) { c += LETRAS[Math.floor(Math.random() * LETRAS.length)]; } return c; }
   function ruta(p) { return "salas/" + S.codigo + (p ? "/" + p : ""); }
-  function miJug() { return { n: perfil.nombre || "?", cam: -1, num: 0, on: true, act: true, lado: "", listo: false, t: Red.ahora() }; }
+  function miJug() { return { n: perfil.nombre || "?", cam: -1, num: 0, on: true, act: true, lado: "", listo: false, t: Red.ahora(), pf: { d: perfil.dorsal | 0, p: perfil.piel | 0, c: perfil.colPelo | 0, b: perfil.barba | 0, cb: perfil.colBarba | 0, l: perfil.lentes ? 1 : 0 } }; }
   function jugs(v) { v = v || S.v; return (v && v.jug) || {}; }
   function ids(v) { return Object.keys(jugs(v)).sort(function (a, b) { return (jugs(v)[a].t || 0) - (jugs(v)[b].t || 0) || (a < b ? -1 : 1); }); }
   function nombre(u) { const j = jugs()[u]; return j ? j.n : "?"; }
@@ -476,12 +476,20 @@ const Multi = (function () {
     try { PT1.detener(); } catch (e) {}
     const J = jugs(), lista = ids().map(function (u) { return { u: u, j: J[u], tot: totalEq(J[u]), fuera: J[u].act === false }; })
       .sort(function (a, b) { return (a.fuera - b.fuera) || (b.tot - a.tot); });
-    const ganador = lista.length && !lista[0].fuera ? lista[0].u : null;
-    let h = "<h2>" + t("finTitulo") + "</h2>";
-    lista.forEach(function (r, i) { h += '<div class="rankFila' + (r.u === ganador ? " g" : "") + '"><span>' + (r.fuera ? "—" : (i + 1) + "º") + " " + esc(r.j.n) + (r.u === ganador ? " 🏆 " + t("ganador") : "") + (r.fuera ? " (" + t("expulsadoTag") + ")" : "") + "</span><span>" + r.tot + "</span></div>"; });
-    h += '<button class="gb" onclick="Multi.salirBtn(true)">' + t("volverMenu") + "</button>";
-    $("finMultiPanel").innerHTML = h; eFin.style.display = "block";
-    if (ganador === S.uid) { try { if (Per3D_OK() && typeof Fiesta3D !== "undefined") { Fiesta3D.iniciar($("cvFiestaM"), perfil); } } catch (e) {} }
+    const ganador = lista.length && !lista[0].fuera ? lista[0] : (lista[0] || null);
+    const gj = ganador ? ganador.j : null, form = S.v && S.v.juego && S.v.juego.form, plantilla = (typeof FORMACIONES !== "undefined" && FORMACIONES[form]) || [];
+    const jugadores = gj ? eqLista(gj).map(function (e) { const s = plantilla[e[0]] || ["", 50, 50]; return { x: s[1], y: s[2], nombre: e[1].nombre, nivel: e[1].nivel || 0 }; }) : [];
+    FinalUI.render($("finMultiGrid"), {
+      nombre: gj ? gj.n : "", total: ganador ? ganador.tot : 0, form: form, jugadores: jugadores,
+      ranking: lista.map(function (r) { return { n: r.j.n, tot: r.tot, gan: !!ganador && r.u === ganador.u && !r.fuera, yo: r.u === S.uid, fuera: r.fuera }; }),
+      botones: '<button class="gb" onclick="Multi.salirBtn(true)">' + t("volverMenu") + "</button>"
+    });
+    eFin.style.display = "block";
+    if (gj) {                                             // todos ven al campeón festejando con la copa
+      const pf = gj.pf || {}, look = ganador.u === S.uid ? perfil : { nombre: gj.n, dorsal: pf.d == null ? 10 : pf.d, piel: pf.p, colPelo: pf.c, barba: pf.b, colBarba: pf.cb, lentes: !!pf.l, camisa: gj.cam >= 0 ? gj.cam : 0 };
+      if (ganador.u === S.uid) { look.camisa = gj.cam >= 0 ? gj.cam : look.camisa; }
+      try { if (Per3D_OK() && typeof Fiesta3D !== "undefined") { Fiesta3D.iniciar($("cvFiestaM"), look); } } catch (e) {}
+    }
   }
 
   // ---------- salir / limpiar ----------

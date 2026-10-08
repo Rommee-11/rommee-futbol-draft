@@ -176,7 +176,7 @@ table.td { width: 100%; border-collapse: collapse; font-size: 14px; }
 .cr::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 14%, transparent 14% 28%); }
 .cr .tp { position: relative; font: 700 calc(var(--cw) * .06) "Palatino Linotype", Georgia, serif; letter-spacing: .28em; white-space: nowrap; color: #f3d27a; text-transform: uppercase; }
 .cr .bl { position: relative; font-size: calc(var(--cw) * .3); line-height: 1; filter: drop-shadow(0 6px 4px rgba(0,0,0,.5)); }
-.cr .nm { position: relative; font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; line-height: 1.1; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.5); word-break: keep-all; overflow-wrap: normal; hyphens: none; max-width: 100%; }
+.cr .nm { position: relative; font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; line-height: 1.1; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.5); word-break: keep-all; overflow-wrap: normal; hyphens: none; width: 100%; max-width: 100%; height: calc(var(--chh) * .27); display: flex; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; overflow: hidden; text-wrap: balance; flex: 0 0 auto; }
 .cr .fl { position: relative; width: 62%; aspect-ratio: 4 / 3; border-radius: 6px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.85); }
 .cr .fl img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .bnd { height: 1em; width: 1.33em; vertical-align: -.12em; margin-right: .35em; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.5); }
@@ -300,6 +300,77 @@ canvas.cvPatada.gl { z-index: -1; }
 #presentacion { z-index: 40; }
 .flashPenal { position: fixed; left: 50%; top: 44%; width: 42vmin; height: 42vmin; margin: -21vmin 0 0 -21vmin; border-radius: 50%; pointer-events: none; z-index: 5; background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,235,140,.6) 45%, rgba(255,215,0,0) 70%); animation: destello .85s ease-out forwards; }
 @keyframes destello { from { transform: scale(.4); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }
+
+/* ===== celular: todo entra en pantalla sin encimarse (v19) ===== */
+.pant { min-height: 100vh; min-height: 100dvh; }
+#menu.activa { display: flex; flex-direction: column; }
+#menu #chip { position: static; align-self: flex-end; margin: 0 0 0 auto; flex: 0 0 auto; max-width: 70%; }
+#menu #chip span, #menu #chip b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#menu .cab { padding-top: 10px; flex: 0 0 auto; }
+#menu .botonera { margin-top: 24px; flex: 0 0 auto; }
+@media (max-height: 760px) { #menu .botonera { margin-top: 24px; } #menu .gb { margin: 8px auto; padding: 13px 10px; } #menu .mini .t1 { font-size: clamp(38px, 11vw, 56px); } }
+@media (max-height: 620px) { #menu .gb { margin: 6px auto; padding: 10px 10px; font-size: 18px; } #chip .av, #chip .fotoChip { width: 32px; height: 38px; } }
+
+
+/* ===== pantalla final: campeón a medio cuerpo, alineación, formación y marcadores ===== */
+.finGrid { position: relative; z-index: 2; width: 100%; height: 100%; box-sizing: border-box; padding: 8px; display: grid; gap: 8px; pointer-events: none;
+  grid-template-columns: minmax(170px, 29%) 1fr minmax(190px, 29%); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "top top top" "alin . lado"; }
+.finGrid .fTop { grid-area: top; display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 14px; text-align: center; text-shadow: 0 2px 8px #000; }
+.finGrid .fCamp { font-size: clamp(20px, 4.4vw, 38px); font-weight: 900; color: #ffd23f; letter-spacing: .05em; line-height: 1.05; text-shadow: 0 3px 0 #6b4a00, 0 0 22px rgba(255,210,63,.7); }
+.finGrid .fNom { font-size: clamp(15px, 2.8vw, 24px); font-weight: 800; color: #fff; }
+.finGrid .fPts { font-size: clamp(22px, 4vw, 34px); font-weight: 900; color: #fff; line-height: 1; text-shadow: 0 3px 0 #1a7a2e, 0 0 20px rgba(120,255,150,.8); }
+.finGrid #finPuntos { font-size: inherit; text-shadow: none; color: inherit; line-height: inherit; }
+.finGrid .fPts small { font-size: clamp(9px, 1.4vw, 12px); letter-spacing: 2px; text-transform: uppercase; color: #cfe8ff; font-weight: 700; }
+.finGrid .fPan { background: rgba(2,22,44,.74); border: 2px solid rgba(143,220,255,.35); border-radius: 14px; padding: 6px 8px; pointer-events: auto; box-sizing: border-box; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.finGrid .fAlin { grid-area: alin; align-items: center; }
+.finGrid .fLado { grid-area: lado; }
+.finGrid .fPan h4 { margin: 0 0 4px; font-size: clamp(11px, 1.8vw, 14px); letter-spacing: 2px; color: #8fdcff; text-transform: uppercase; text-align: center; }
+.finGrid .fAlin svg { flex: 1 1 auto; min-height: 0; width: 100%; max-width: 360px; }
+.finGrid .fMsg { font-size: clamp(10px, 1.6vw, 12px); color: #ffe9a3; text-align: center; margin-bottom: 4px; }
+.finGrid .fLista { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.finGrid .fRk { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; margin: 3px 0; border-radius: 9px; background: rgba(255,255,255,.09); font-size: clamp(12px, 2vw, 15px); font-weight: bold; color: #fff; }
+.finGrid .fRk.g { background: rgba(255,210,63,.28); border: 1px solid #ffd23f; }
+.finGrid .fRk span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.finGrid .fBtns { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
+.finGrid .fBtns button { margin: 0; width: 100%; box-sizing: border-box; padding: 9px 8px; font-size: clamp(13px, 2vw, 16px); }
+@media (max-aspect-ratio: 1/1) {
+  .finGrid { grid-template-columns: 1fr 1fr; grid-template-rows: auto minmax(0, 1fr) minmax(0, 38%); grid-template-areas: "top top" ". ." "alin lado"; }
+}
+
+/* ===== celular v19: horizontal y vertical compactos, sin tener que bajar para ver los botones ===== */
+@media (max-width: 700px) {
+  #cvCreador, #visor2d svg { height: min(36vh, 300px); }
+  #visorCreador { width: min(94vw, 420px); position: static; }
+  #visorCreador .pie { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  #visorCreador .pie button { width: auto; flex: 1 1 28%; font-size: 15px; padding: 10px 6px; }
+  #visorCreador .pie #btnGuardarPerfil { flex: 1 1 100%; }
+  #opcionesCreador { flex: 1 1 100%; }
+}
+@media (max-height: 560px) {
+  #selFormacion { gap: 4px; padding: 4px; } #selFormacion h2 { display: none; }
+  #selFormacion .escena3d { height: 62vh; zoom: .7; }
+  #formNombre { font-size: 30px; }
+  #selFormacion .barra { display: flex; flex-wrap: nowrap; gap: 8px; justify-content: center; align-items: center; margin: 0; }
+  #selFormacion .barra .gb, #selFormacion .barra button { padding: 9px 16px; font-size: 18px; width: auto !important; margin: 2px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .pant { padding: 6px 12px; min-height: 100dvh; }
+  .pant h2 { margin: 2px 0 4px; font-size: 22px; }
+  #menu.activa { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: 18px; align-items: center; height: 100dvh; box-sizing: border-box; overflow: hidden; }
+  #menu #chip { grid-column: 2; grid-row: 1; justify-self: end; }
+  #menu .cab { grid-column: 1; grid-row: 1 / 3; padding-top: 0; align-self: center; }
+  #menu .botonera { grid-column: 2; grid-row: 2; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: center; }
+  #menu .botonera .gb { margin: 0; width: 100%; box-sizing: border-box; padding: 12px 6px; font-size: 15px; letter-spacing: .06em; }
+  #menu .botonera .gb:first-child { grid-column: 1 / 3; }
+  #menu .mini .t1 { font-size: clamp(34px, 8vw, 54px); } #menu .mini .t2 { font-size: clamp(13px, 3vw, 20px); }
+  #opciones .panel { column-count: 3; column-gap: 20px; max-width: 760px; padding: 10px 14px; } #opciones .panel > * { break-inside: avoid; }
+  #opciones .panel h3 { margin: 4px 0; } #opciones .panel small { font-size: 11px; }
+  #perfil #creador { flex-wrap: nowrap; align-items: flex-start; }
+  #cvCreador, #visor2d svg { height: min(58vh, 230px); }
+  #visorCreador { width: 230px; position: static; }
+  #visorCreador .pie { flex-direction: row; flex-wrap: wrap; } #visorCreador .pie button { flex: 1 1 40%; font-size: 13px; padding: 7px 4px; } #visorCreador .pie #btnGuardarPerfil { flex: 1 1 100%; }
+  #opcionesCreador { max-height: calc(100dvh - 54px); overflow-y: auto; }
+}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b2a4a">
@@ -434,14 +505,12 @@ canvas.cvPatada.gl { z-index: -1; }
 </div>
 
 <div id="selFormacion">
-  <canvas id="cvPatada2" class="cvPatada"></canvas>
   <h2 data-i="formacion"></h2>
   <div class="escena3d"><div id="cilindro"></div></div>
   <div id="formNombre"></div>
-  <div class="ayudaP" data-i="ayudaPatada"></div>
-  <div id="barraFuerza2" class="barraF"><div id="relleno2" class="relleno"></div></div>
   <div class="barra">
-    <button id="btnGirarForm" data-i="girar"></button>
+    <button id="btnGirarForm" class="gb" data-i="girarRuleta" onclick="girarFormacionesTap()"></button>
+    <button id="btnAzarForm" class="gb" data-i="azarYa" style="font-size:clamp(14px,3.6vw,18px);padding:12px 14px" onclick="girarFormacionesRapido()"></button>
   </div>
   <div class="barra">
     <button id="btnEmpezar" disabled class="gb" style="width:260px;padding:12px;margin:4px" onclick="empezarDraft()" data-i="empezar"></button>
@@ -449,13 +518,7 @@ canvas.cvPatada.gl { z-index: -1; }
   </div>
 </div>
 
-<div id="fin" class="modal"><canvas id="cvFiesta"></canvas><div class="panel finPanel">
-  <div class="finArriba"><h2 id="finTitulo" data-i="felicitaciones"></h2>
-  <div class="finEtq" data-i="puntosTotales"></div><div id="finPuntos">0</div>
-  </div>
-  <div class="finBtns"><h3 id="finTxt" style="width:100%"></h3><button onclick="cerrarFin(); ir('records')" data-i="verRanking"></button>
-  <button onclick="cerrarFin(); abrirFormaciones()" data-i="jugarOtra"></button></div>
-</div></div>
+<div id="fin" class="modal"><canvas id="cvFiesta"></canvas><div class="finGrid" id="finGrid"></div></div>
 
 <script>if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { navigator.serviceWorker.register("sw.js").catch(function () {}); }</script>
 <script src="datos/red.js"></script>
@@ -693,7 +756,7 @@ canvas.cvPatada.gl { z-index: -1; }
       clearTimeout(revTimer); clearTimeout(revOcultar);
       c.style.width = cw + "px"; c.style.background = "linear-gradient(160deg," + o.pal[0] + "," + o.pal[1] + ")";
       el("rvEtiq").textContent = o.etiq; el("rvIco").innerHTML = o.ico;
-      const n = el("rvNombre"); n.textContent = o.nombre; n.style.fontSize = Math.round(tamanoNombre(o.nombre, cw * 1.05) * 1.15) + "px";
+      const n = el("rvNombre"); n.textContent = o.nombre; n.style.fontSize = Math.round(tamanoNombre(o.nombre, cw - 12) * 1.05) + "px";
       const nv = el("rvNivel"); nv.style.display = "none"; nv.className = "";
       el("rvDatos").innerHTML = o.datos || "";
       const bt = el("rvBoton"); bt.style.display = o.boton ? "inline-block" : "none"; if (o.boton) { bt.textContent = o.boton; }
@@ -705,7 +768,7 @@ canvas.cvPatada.gl { z-index: -1; }
         s.style.animationDelay = (0.15 + Math.random() * 0.35) + "s"; s.style.background = s.style.color = (i % 3 ? "#ffd23f" : "#8fdcff"); ch.appendChild(s);
       }
       revAct = o.alFin;
-      r.classList.remove("on", "off"); void r.offsetWidth; r.classList.add("on");
+      r.classList.remove("on", "off"); void r.offsetWidth; r.classList.add("on"); ajustarNombre(n);
       if (o.nivel) {                                  // el número del jugador sube contando
         nv.style.display = "block"; nv.style.color = o.nivel >= 80 ? "#ffd700" : (o.nivel >= 74 ? "#e6e6e6" : "#e0955a"); nv.className = o.nivel >= 80 ? "oro" : "";
         let k = 0; nv.textContent = 0; setTimeout(function () { const rel = setInterval(function () { k++; nv.textContent = k; if (k >= o.nivel) { clearInterval(rel); } }, 16); }, 450);
@@ -760,7 +823,7 @@ const TT = {
     peinados: ["Afro", "Corto", "Con flequillo", "Mohicano", "Largo suelto", "Con colita", "Rulos", "Calvo", "Con jopo", "Con moño"], barbas: ["Sin barba", "Candado", "Perilla", "Bigote", "Barba corta", "Barba larga", "Patillas"], camisetas: ["Rayo", "Selva", "Noche", "Sol"],
     felicitaciones: "¡FELICITACIONES!", puntosTotales: "PUNTOS TOTALES", rankingBtn: "Ver ranking",
     unJugador: "UN JUGADOR", multijugador: "MULTIJUGADOR", opciones: "OPCIONES", records: "RECORDS", salir: "SALIR", miPerfil: "MI PERFIL", volver: "Volver", menuBtn: "Menú", reiniciar: "Reiniciar selección",
-    formacion: "Elegí tu formación:", empezar: "Empezar", tocaPuesto: "Tocá un lugar vacío de la cancha para elegir ese puesto", puestoElegido: "Puesto elegido", fase: "Fase", girar: "PATEA", ayudaPatada: "Apretá PATEA cuando la línea esté en la zona verde", zonas: {verde:"VERDE",amarillo:"AMARILLO",naranja:"NARANJA",rojo:"ROJO"}, resGol: "¡GOOOL!", resAtaja: "¡LO ATAJÓ!", resAfuera: "¡AFUERA!", continuar: "Continuar", sumar: "Sumar a mi equipo",
+    formacion: "Elegí tu formación:", empezar: "Empezar", tocaPuesto: "Tocá un lugar vacío de la cancha para elegir ese puesto", puestoElegido: "Puesto elegido", fase: "Fase", girar: "PATEA", girarRuleta: "GIRAR", azarYa: "⚡ AL AZAR YA", ayudaPatada: "Apretá PATEA cuando la línea esté en la zona verde", zonas: {verde:"VERDE",amarillo:"AMARILLO",naranja:"NARANJA",rojo:"ROJO"}, resGol: "¡GOOOL!", resAtaja: "¡LO ATAJÓ!", resAfuera: "¡AFUERA!", continuar: "Continuar", sumar: "Sumar a mi equipo",
     jugadores: "Jugadores", nivelTotal: "Nivel total", completo: "¡Equipo completo!", sinJugadores: "No hay jugadores cargados para este puesto", anios: "años", usuario: "Usuario",
     sinRecords: "Todavía no hay partidas. ¡Armá tu primer equipo!", entraste: "¡Entraste al Top 10! Puesto", noEntraste: "No alcanzó para el Top 10. ¡Probá de nuevo!", verRanking: "Ver ranking", jugarOtra: "Jugar de nuevo", felicitaciones: "¡FELICITACIONES!", puntosTotales: "Puntos totales",
     video: "Video", fondoAnimado: "Fondo animado", videoProx: "Más ajustes de video próximamente.", audio: "Audio", musica: "Música", efectos: "Efectos", audioProx: "Los sonidos se agregarán más adelante.", idioma: "Idioma",
@@ -774,7 +837,7 @@ const TT = {
     peinados: ["Afro", "Short", "Fringe", "Mohawk", "Long loose", "Ponytail", "Curls", "Bald", "Quiff", "Bun"], barbas: ["No beard", "Goatee", "Soul patch", "Moustache", "Short beard", "Long beard", "Sideburns"], camisetas: ["Bolt", "Jungle", "Night", "Sun"],
     felicitaciones: "CONGRATULATIONS!", puntosTotales: "TOTAL POINTS", rankingBtn: "View ranking",
     unJugador: "SINGLE PLAYER", multijugador: "MULTIPLAYER", opciones: "OPTIONS", records: "RECORDS", salir: "EXIT", miPerfil: "MY PROFILE", volver: "Back", menuBtn: "Menu", reiniciar: "Restart selection",
-    formacion: "Choose your formation:", empezar: "Start", tocaPuesto: "Tap an empty spot on the pitch to pick that position", puestoElegido: "Position", fase: "Step", girar: "KICK", ayudaPatada: "Press KICK when the line is in the green zone", zonas: {verde:"GREEN",amarillo:"YELLOW",naranja:"ORANGE",rojo:"RED"}, resGol: "GOOOAL!", resAtaja: "SAVED!", resAfuera: "MISSED!", continuar: "Continue", sumar: "Add to my team",
+    formacion: "Choose your formation:", empezar: "Start", tocaPuesto: "Tap an empty spot on the pitch to pick that position", puestoElegido: "Position", fase: "Step", girar: "KICK", girarRuleta: "SPIN", azarYa: "⚡ RANDOM NOW", ayudaPatada: "Press KICK when the line is in the green zone", zonas: {verde:"GREEN",amarillo:"YELLOW",naranja:"ORANGE",rojo:"RED"}, resGol: "GOOOAL!", resAtaja: "SAVED!", resAfuera: "MISSED!", continuar: "Continue", sumar: "Add to my team",
     jugadores: "Players", nivelTotal: "Total rating", completo: "Team complete!", sinJugadores: "No players loaded for this position", anios: "years old", usuario: "User",
     sinRecords: "No games yet. Build your first team!", entraste: "You made the Top 10! Rank", noEntraste: "Not enough for the Top 10. Try again!", verRanking: "View ranking", jugarOtra: "Play again", felicitaciones: "CONGRATULATIONS!", puntosTotales: "Total points",
     video: "Video", fondoAnimado: "Animated background", videoProx: "More video settings coming soon.", audio: "Audio", musica: "Music", efectos: "Effects", audioProx: "Sounds will be added later.", idioma: "Language",
@@ -788,7 +851,7 @@ const TT = {
     peinados: ["Afro", "Curto", "Com franja", "Moicano", "Longo solto", "Rabo de cavalo", "Cachos", "Careca", "Topete", "Coque"], barbas: ["Sem barba", "Cavanhaque", "Pera", "Bigode", "Barba curta", "Barba longa", "Costeletas"], camisetas: ["Raio", "Selva", "Noite", "Sol"],
     felicitaciones: "PARABÉNS!", puntosTotales: "PONTOS TOTAIS", rankingBtn: "Ver ranking",
     unJugador: "UM JOGADOR", multijugador: "MULTIJOGADOR", opciones: "OPÇÕES", records: "RECORDES", salir: "SAIR", miPerfil: "MEU PERFIL", volver: "Voltar", menuBtn: "Menu", reiniciar: "Reiniciar seleção",
-    formacion: "Escolha sua formação:", empezar: "Começar", tocaPuesto: "Toque em um lugar vazio do campo para escolher essa posição", puestoElegido: "Posição", fase: "Fase", girar: "CHUTA", ayudaPatada: "Aperte CHUTA quando a linha estiver na zona verde", zonas: {verde:"VERDE",amarillo:"AMARELO",naranja:"LARANJA",rojo:"VERMELHO"}, resGol: "GOOOL!", resAtaja: "DEFENDEU!", resAfuera: "PARA FORA!", continuar: "Continuar", sumar: "Adicionar ao meu time",
+    formacion: "Escolha sua formação:", empezar: "Começar", tocaPuesto: "Toque em um lugar vazio do campo para escolher essa posição", puestoElegido: "Posição", fase: "Fase", girar: "CHUTA", girarRuleta: "GIRAR", azarYa: "⚡ SORTEAR JÁ", ayudaPatada: "Aperte CHUTA quando a linha estiver na zona verde", zonas: {verde:"VERDE",amarillo:"AMARELO",naranja:"LARANJA",rojo:"VERMELHO"}, resGol: "GOOOL!", resAtaja: "DEFENDEU!", resAfuera: "PARA FORA!", continuar: "Continuar", sumar: "Adicionar ao meu time",
     jugadores: "Jogadores", nivelTotal: "Nível total", completo: "Time completo!", sinJugadores: "Não há jogadores carregados para esta posição", anios: "anos", usuario: "Usuário",
     sinRecords: "Ainda não há partidas. Monte seu primeiro time!", entraste: "Você entrou no Top 10! Posição", noEntraste: "Não foi suficiente para o Top 10. Tente de novo!", verRanking: "Ver ranking", jugarOtra: "Jogar de novo", felicitaciones: "PARABÉNS!", puntosTotales: "Pontos totais",
     video: "Vídeo", fondoAnimado: "Fundo animado", videoProx: "Mais ajustes de vídeo em breve.", audio: "Áudio", musica: "Música", efectos: "Efeitos", audioProx: "Os sons serão adicionados depois.", idioma: "Idioma",
@@ -802,7 +865,7 @@ const TT = {
     peinados: ["Afro", "Corto", "Con frangia", "Mohicano", "Lungo sciolto", "Codino", "Ricci", "Calvo", "Ciuffo", "Chignon"], barbas: ["Senza barba", "Pizzetto", "Barbetta", "Baffi", "Barba corta", "Barba lunga", "Basette"], camisetas: ["Fulmine", "Giungla", "Notte", "Sole"],
     felicitaciones: "COMPLIMENTI!", puntosTotales: "PUNTI TOTALI", rankingBtn: "Vedi classifica",
     unJugador: "UN GIOCATORE", multijugador: "MULTIGIOCATORE", opciones: "OPZIONI", records: "RECORD", salir: "ESCI", miPerfil: "IL MIO PROFILO", volver: "Indietro", menuBtn: "Menu", reiniciar: "Riavvia selezione",
-    formacion: "Scegli il tuo modulo:", empezar: "Inizia", tocaPuesto: "Tocca un posto vuoto del campo per scegliere quel ruolo", puestoElegido: "Ruolo", fase: "Fase", girar: "TIRA", ayudaPatada: "Premi TIRA quando la linea è nella zona verde", zonas: {verde:"VERDE",amarillo:"GIALLO",naranja:"ARANCIO",rojo:"ROSSO"}, resGol: "GOOOL!", resAtaja: "PARATA!", resAfuera: "FUORI!", continuar: "Continua", sumar: "Aggiungi alla mia squadra",
+    formacion: "Scegli il tuo modulo:", empezar: "Inizia", tocaPuesto: "Tocca un posto vuoto del campo per scegliere quel ruolo", puestoElegido: "Ruolo", fase: "Fase", girar: "TIRA", girarRuleta: "GIRA", azarYa: "⚡ CASUALE SUBITO", ayudaPatada: "Premi TIRA quando la linea è nella zona verde", zonas: {verde:"VERDE",amarillo:"GIALLO",naranja:"ARANCIO",rojo:"ROSSO"}, resGol: "GOOOL!", resAtaja: "PARATA!", resAfuera: "FUORI!", continuar: "Continua", sumar: "Aggiungi alla mia squadra",
     jugadores: "Giocatori", nivelTotal: "Livello totale", completo: "Squadra completa!", sinJugadores: "Nessun giocatore caricato per questo ruolo", anios: "anni", usuario: "Utente",
     sinRecords: "Ancora nessuna partita. Costruisci la tua prima squadra!", entraste: "Sei entrato nella Top 10! Posizione", noEntraste: "Non basta per la Top 10. Riprova!", verRanking: "Vedi classifica", jugarOtra: "Gioca ancora", felicitaciones: "COMPLIMENTI!", puntosTotales: "Punti totali",
     video: "Video", fondoAnimado: "Sfondo animato", videoProx: "Altre impostazioni video in arrivo.", audio: "Audio", musica: "Musica", efectos: "Effetti", audioProx: "I suoni saranno aggiunti più avanti.", idioma: "Lingua",
@@ -831,7 +894,7 @@ function ir(id) {
   if (id !== "pantallaJuego") { revelaOculta(); }
   if (id === "menu") { dibujarChip(); if (window.Multi) { Multi.invitacionPendiente(); } }
 }
-function entrarMenu() { if (perfil.creado) { ir("menu"); } else { ir("perfil"); } }   // la primera vez en cada aparato: crear el personaje
+function entrarMenu() { if (!el("intro").classList.contains("activa")) { return; } if (perfil.creado) { ir("menu"); } else { ir("perfil"); } }   // la primera vez en cada aparato: crear el personaje
 const tIntro = setTimeout(entrarMenu, 5500);
 function saltarIntro() { clearTimeout(tIntro); entrarMenu(); }
 function salir() {
@@ -1163,6 +1226,36 @@ function reiniciarSeleccion() {
   if (girando || !slots.length) { return; }
   const f = el("selForm").value; limpiarPartida(); el("selForm").value = f; empezar();
 }
+const FIN_TXT = {
+  es: { camp: "¡CAMPEÓN!", alin: "Alineación", form: "Formación", otros: "Marcadores", total: "Puntos totales", vos: "vos", fuera: "fuera" },
+  en: { camp: "CHAMPION!", alin: "Line-up", form: "Formation", otros: "Scores", total: "Total points", vos: "you", fuera: "out" },
+  pt: { camp: "CAMPEÃO!", alin: "Escalação", form: "Formação", otros: "Placar", total: "Pontos totais", vos: "você", fuera: "fora" },
+  it: { camp: "CAMPIONE!", alin: "Formazione", form: "Modulo", otros: "Punteggi", total: "Punti totali", vos: "tu", fuera: "fuori" }
+};
+// info: { nombre, total, form, jugadores:[{x,y,nombre,nivel}], ranking:[{n,tot,gan,yo,fuera}], idPuntos, botones (html) }
+const FinalUI = {
+  corto: function (n) { n = String(n || ""); if (n.length <= 9) { return n; } const p = n.split(/\s+/); return p[p.length - 1].slice(0, 10); },
+  pitch: function (info) {
+    let c = "";
+    info.jugadores.forEach(function (j) {
+      const col = j.nivel >= 80 ? "#ffd23f" : (j.nivel >= 74 ? "#d7dde6" : "#cd8a4b"), y = j.y * 1.3;
+      c += '<circle cx="' + j.x + '" cy="' + y + '" r="6.4" fill="' + col + '" stroke="#0a2a1e" stroke-width="1"/><text x="' + j.x + '" y="' + (y + 2.3) + '" text-anchor="middle" font-size="6.4" font-weight="900" fill="#0a1a10">' + j.nivel + '</text>' +
+        '<text x="' + j.x + '" y="' + (y + 11.5) + '" text-anchor="middle" font-size="4.6" font-weight="800" fill="#fff" stroke="#0a2a1e" stroke-width=".9" paint-order="stroke">' + esc(FinalUI.corto(j.nombre)).toUpperCase() + '</text>';
+    });
+    return '<svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid meet"><rect width="100" height="130" rx="5" fill="#1d7a3a"/><g stroke="#fff" stroke-width=".9" fill="none" opacity=".75"><rect x="3" y="3" width="94" height="124"/><path d="M3 65H97"/><circle cx="50" cy="65" r="11"/><rect x="25" y="3" width="50" height="19"/><rect x="25" y="108" width="50" height="19"/></g>' + c + '</svg>';
+  },
+  render: function (cont, info) {
+    const d = FIN_TXT[ajustes.idioma] || FIN_TXT.es;
+    let h = '<div class="fTop"><span class="fCamp">🏆 ' + d.camp + '</span> <span class="fNom">' + esc(info.nombre) + '</span> <span class="fPts"><b id="' + (info.idPuntos || "") + '">' + info.total + '</b> <small>' + d.total + '</small></span></div>';
+    h += '<div class="fPan fAlin"><h4>' + d.alin + ' · ' + esc(info.form || "") + '</h4>' + FinalUI.pitch(info) + '</div>';
+    h += '<div class="fPan fLado"><h4>' + (info.tituloLado || d.otros) + '</h4>' + (info.mensaje ? '<div class="fMsg">' + esc(info.mensaje) + '</div>' : "") + '<div class="fLista">';
+    (info.ranking || []).forEach(function (r, i) {
+      h += '<div class="fRk' + (r.gan ? " g" : "") + '"><span>' + (r.fuera ? "—" : (i + 1) + "º") + " " + esc(r.n) + (r.yo ? " (" + d.vos + ")" : "") + (r.gan ? " 🏆" : "") + (r.fuera ? " · " + d.fuera : "") + '</span><span>' + r.tot + '</span></div>';
+    });
+    h += '</div><div class="fBtns">' + (info.botones || "") + '</div></div>';
+    cont.innerHTML = h;
+  }
+};
 function finalizarPartida() {
   const total = slots.reduce(function (s, x) { return s + x.jugador.nivel; }, 0);
   const reg = { nombre: perfil.nombre || L().jugadorDef, total: total, formacion: el("selForm").value, fecha: new Date().toLocaleDateString(),
@@ -1172,7 +1265,15 @@ function finalizarPartida() {
   const pos = lista.indexOf(reg) + 1;
   let msg = L().nivelTotal + ": " + total + " — ";
   if (pos <= 10) { guardar("rfd_records", lista.slice(0, 10)); msg += L().entraste + " " + pos; } else { msg += L().noEntraste; }
-  el("finTxt").textContent = msg; el("fin").classList.add("visible");
+  const top = lista.slice(0, 3).map(function (r) { return { n: r.nombre, tot: r.total, gan: r === reg, yo: false }; });
+  if (pos > 3) { top.push({ n: reg.nombre, tot: total, gan: true, yo: true }); }
+  FinalUI.render(el("finGrid"), {
+    nombre: reg.nombre, total: 0, form: reg.formacion, idPuntos: "finPuntos", tituloLado: L().records, mensaje: msg,
+    jugadores: slots.map(function (s) { return { x: s.x, y: s.y, nombre: s.jugador.nombre, nivel: s.jugador.nivel }; }),
+    ranking: top,
+    botones: '<button onclick="cerrarFin(); ir(\'records\')">' + L().verRanking + '</button><button onclick="cerrarFin(); abrirFormaciones()">' + L().jugarOtra + '</button>'
+  });
+  el("fin").classList.add("visible");
   let fiesta = false;
   try { if (Per3D_OK() && typeof Fiesta3D !== "undefined") { fiesta = !!Fiesta3D.iniciar(el("cvFiesta"), perfil); } } catch (e) { fiesta = false; }
   el("cvFiesta").style.display = fiesta ? "block" : "none";
@@ -1218,17 +1319,35 @@ function moverCilindro(seg) {
   el("formNombre").textContent = NOMBRES_FORM[idxForm];
 }
 let formSorteada = false;
-function girarFormaciones(pot) {
+function girarFormaciones(pot, rapido) {
   girandoForm = true;
-  const dest = Math.floor(Math.random() * NOMBRES_FORM.length), falta = (((dest * PASO - angForm) % 360) + 360) % 360, seg = 2.8 + 2.4 * pot;
+  const dest = Math.floor(Math.random() * NOMBRES_FORM.length), falta = (((dest * PASO - angForm) % 360) + 360) % 360, seg = rapido ? 1.0 : 2.8 + 2.4 * pot;
   angForm += 360 * (2 + Math.round(6 * pot)) + falta; idxForm = dest; moverCilindro(seg); el("formNombre").textContent = "...";
-  setTimeout(function () { girandoForm = false; formSorteada = true; el("btnEmpezar").disabled = false; el("formNombre").textContent = NOMBRES_FORM[idxForm]; }, seg * 1000 + 200);
+  const mi = tokForm;
+  setTimeout(function () {
+    girandoForm = false; formSorteada = true; el("btnEmpezar").disabled = false; el("formNombre").textContent = NOMBRES_FORM[idxForm];
+    setTimeout(function () { if (mi === tokForm && formSorteada) { empezarDraft(); } }, rapido ? 600 : 1700);       // se ve la formación 1,7 s y arranca solo
+  }, seg * 1000 + 200);
 }
-function abrirFormaciones() { formSorteada = false; el("btnEmpezar").disabled = true; el("selFormacion").classList.add("visible"); if (!el("cilindro").children.length) { armarCarrusel(); } PT2.reiniciar(); }
-function cerrarFormaciones() { if (!girandoForm) { PT2.detener(); el("selFormacion").classList.remove("visible"); } }
+let tokForm = 0;
+function girarFormacionesRapido() { if (girandoForm || formSorteada) { return; } el("btnGirarForm").disabled = true; el("btnAzarForm").disabled = true; girarFormaciones(0.3, true); }
+(function () {                                   // opción 3: deslizar el dedo/mouse sobre la ruleta la lanza con fuerza
+  let x0 = null, t0 = 0;
+  document.addEventListener("pointerdown", function (e) { if (e.target.closest && e.target.closest("#selFormacion .escena3d")) { x0 = e.clientX; t0 = performance.now(); } });
+  document.addEventListener("pointerup", function (e) {
+    if (x0 === null) { return; } const dx = Math.abs(e.clientX - x0), dt = Math.max(60, performance.now() - t0); x0 = null;
+    if (dx > 40 && !girandoForm && !formSorteada) { el("btnGirarForm").disabled = true; el("btnAzarForm").disabled = true; girarFormaciones(Math.min(1, dx / dt / 2.2)); }
+  });
+})();
+function girarFormacionesTap() {                      // un toque: la ruleta gira sola, frena sola y empieza el juego
+  if (girandoForm || formSorteada) { return; }
+  el("btnGirarForm").disabled = true; el("btnAzarForm").disabled = true; girarFormaciones(0.3 + Math.random() * 0.6);
+}
+function abrirFormaciones() { tokForm++; formSorteada = false; el("btnEmpezar").disabled = true; el("btnGirarForm").disabled = false; el("btnAzarForm").disabled = false; el("selFormacion").classList.add("visible"); if (!el("cilindro").children.length) { armarCarrusel(); } }
+function cerrarFormaciones() { if (!girandoForm) { tokForm++; el("selFormacion").classList.remove("visible"); } }
 function empezarDraft() {
   if (girandoForm || !formSorteada) { return; }
-  PT2.detener(); el("selFormacion").classList.remove("visible"); el("selForm").value = NOMBRES_FORM[idxForm];
+  tokForm++; el("selFormacion").classList.remove("visible"); el("selForm").value = NOMBRES_FORM[idxForm];
   limpiarPartida(); ir("pantallaJuego"); empezar();
 }
 function cancelarPuesto() {
@@ -1260,6 +1379,10 @@ const PAL = [["#0b5d3b", "#06301f"], ["#12306e", "#0a1a3d"], ["#7a1020", "#3d071
 let angReel = 0, RR = 0;
 const _cm = document.createElement("canvas").getContext("2d");
 // Tamaño de letra: nunca mayor al que cabe la palabra más larga entera en una sola línea (sin cortar palabras)
+function ajustarNombre(n) {                  // verificación final: si el nombre todavía no entra en la carta, achica la letra hasta que entre
+  let fs = parseFloat(n.style.fontSize) || 16;
+  for (let i = 0; i < 60 && fs > 8 && (n.scrollWidth > n.clientWidth + 1 || n.scrollHeight > n.clientHeight + 1 || (n.parentNode && n.offsetWidth > n.parentNode.clientWidth - 14)); i++) { fs -= 1; n.style.fontSize = fs + "px"; }
+}
 function tamanoNombre(txt, cw) {
   const disp = cw - 8 - 20 - 6, len = txt.length;
   let fs = cw * (len <= 9 ? 0.16 : (len <= 15 ? 0.125 : (len <= 22 ? 0.1 : 0.085)));
@@ -1282,8 +1405,9 @@ function dibujarRuleta() {
     if (esC) { txt = L().cartaTrampa; }
     const fs = tamanoNombre(txt, cw), cod = BANDERAS[txt];
     const adorno = esC ? '<span class="bl">🃏</span>' : (esL ? '<span class="bl">⭐</span>' : cod ? '<span class="fl"><img src="img/flags/' + cod + '.svg" alt=""></span>' : '<span class="bl">⚽</span>');
-    return '<div class="cr" style="transform:rotateY(' + (i * paso) + "deg) translateZ(" + RR + "px);background:linear-gradient(160deg," + PAL[i % 6][0] + "," + PAL[i % 6][1] + ')"><span class="tp">' + esc(tipo) + '</span>' + adorno + '<span class="nm" style="font-size:' + fs + 'px">' + esc(txt) + "</span></div>";
+    return '<div class="cr" style="transform:rotateY(' + (i * paso) + "deg) translateZ(" + RR + "px);background:linear-gradient(160deg," + PAL[i % 6][0] + "," + PAL[i % 6][1] + ')"><span class="tp">' + esc(tipo) + '</span>' + adorno + '<span class="nm" style="font-size:' + fs + 'px"><span>' + esc(txt).replace(" (", "<br>(") + "</span></span></div>";
   }).join("");
+  Array.prototype.forEach.call(el("cil3d").querySelectorAll(".nm"), ajustarNombre);
   angReel = 0; poner(0, 0);
   if (pickRes) { z.classList.add("auto"); el("escenaReel").classList.remove("tenue"); autoGiro(); }          // ya pateaste: las demás ruletas giran solas
   else { z.classList.remove("auto"); el("escenaReel").classList.add("tenue"); PT1.reiniciar(); }
@@ -1353,7 +1477,6 @@ function crecerJuego() { const j = el("juego"); j.classList.remove("crece"); voi
 
 // ===== Patadas: una por ruleta de fases y otra para las formaciones =====
 const PT1 = PatadaAuto(el("cvPatada1"), el("botonGirar"), el("relleno1"), function (p, res) { pickRes = res; el("escenaReel").classList.remove("tenue"); girar(p, res); }, function () { girando = true; }, el("zonaRuleta"));
-const PT2 = PatadaAuto(el("cvPatada2"), el("btnGirarForm"), el("relleno2"), function (p) { girarFormaciones(p); }, function () { girandoForm = true; }, el("selFormacion"));
 // ===== Arranque =====
 ajustarFondo(); iniciarFondo(); aplicarIdioma();
 </script>

@@ -74,6 +74,64 @@ const Avatar3D = (function () {
     return g;
   }
 
+
+  // ---------- nombre y número en la espalda ----------
+  const CHEST = { y: 1.373, z: -0.006 };                           // posición del hueso del pecho (el dibujo se pega ahí)
+  const ZB_Y = [1.2, 1.3, 1.4, 1.5, 1.6], ZB_Z = [-0.15, -0.133, -0.124, -0.095, -0.065];   // forma de la espalda de la camiseta (medida)
+  function zEspalda(x, y) {
+    let i = 0; while (i < ZB_Y.length - 2 && y > ZB_Y[i + 1]) { i++; }
+    const t = Math.max(0, Math.min(1, (y - ZB_Y[i]) / (ZB_Y[i + 1] - ZB_Y[i])));
+    return ZB_Z[i] + (ZB_Z[i + 1] - ZB_Z[i]) * t + 2.4 * x * x - 0.008 - 0.03 * Math.max(0, Math.min(1, (y - 1.38) / 0.1));
+  }
+  const texEsp = new Map();
+  function texturaEspalda(nombre, dorsal, color, borde) {
+    const k = [nombre, dorsal, color, borde].join("|"); if (texEsp.has(k)) { return texEsp.get(k); }
+    const c = document.createElement("canvas"); c.width = 384; c.height = 512; const g = c.getContext("2d");
+    g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round"; g.fillStyle = color; g.strokeStyle = borde; 
+    const nom = String(nombre || "").toUpperCase().slice(0, 12); let fs = 78;
+    g.font = "900 " + fs + "px Arial Black, Impact, Arial, sans-serif";
+    while (g.measureText(nom).width > 300 && fs > 24) { fs -= 3; g.font = "900 " + fs + "px Arial Black, Impact, Arial, sans-serif"; }
+    g.lineWidth = Math.max(4, fs * 0.12); g.strokeText(nom, 192, 58); g.fillText(nom, 192, 58);
+    const num = String(dorsal == null ? "" : dorsal); g.font = "900 " + (num.length > 1 ? 330 : 400) + "px Arial Black, Impact, Arial, sans-serif";
+    g.lineWidth = 26; g.strokeText(num, 192, 305); g.fillText(num, 192, 305);
+    const t = new T.CanvasTexture(c); t.anisotropy = 4; if (T.sRGBEncoding) { t.encoding = T.sRGBEncoding; }
+    texEsp.set(k, t); return t;
+  }
+  function espalda(f, o) {
+    const X0 = -0.12, X1 = 0.12, Y0 = 1.2, Y1 = 1.52, nx = 10, ny = 12, pos = [], uv = [], idx = [];
+    const chest = f.hueso.J_Bip_C_Chest, modelo = f.modelo; f.raiz.updateMatrixWorld(true);
+    const v = new T.Vector3();
+    for (let j = 0; j <= ny; j++) { for (let i = 0; i <= nx; i++) {
+      const x = X0 + (X1 - X0) * i / nx, y = Y0 + (Y1 - Y0) * j / ny;
+      v.set(x, y, zEspalda(x, y)); modelo.localToWorld(v); chest.worldToLocal(v);                // de coordenadas del modelo a coordenadas del hueso del pecho
+      pos.push(v.x, v.y, v.z); uv.push(1 - i / nx, j / ny);                                      // visto desde atrás, la izquierda del dibujo es la izquierda del jugador
+    } }
+    for (let j = 0; j < ny; j++) { for (let i = 0; i < nx; i++) { const a = j * (nx + 1) + i; idx.push(a, a + 1, a + nx + 1, a + 1, a + nx + 2, a + nx + 1); } }
+    const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); geo.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); geo.setIndex(idx);
+    const m = new T.Mesh(geo, new T.MeshBasicMaterial({ map: texturaEspalda(o.nombre, o.dorsal, o.txtColor || "#ffffff", o.txtBorde || "#000000"), transparent: true, side: T.DoubleSide, depthWrite: false, color: 0xdddddd, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    m.renderOrder = 5; m.frustumCulled = false; chest.add(m); return m;
+  }
+  // suela con tapones: placa fina + 6 tapones bajo cada pie, pegados al hueso del pie
+  const SUBE = 0.03;                                               // todo el cuerpo se levanta lo que miden los tapones, para que apoyen en el piso
+  function tapones(f, o) {
+    const T3 = T, col = new T.Color(o.suela || "#1a1a1a");
+    const mat = new T.MeshLambertMaterial({ color: col });
+    const placa = new T.BoxGeometry(0.09, 0.009, 0.225), tap = new T.CylinderGeometry(0.012, 0.0075, 0.021, 8);
+    const pos = [[-0.03, -0.07], [0.03, -0.07], [-0.032, 0.015], [0.032, 0.015], [-0.03, 0.098], [0.03, 0.098]];
+    const v = new T3.Vector3(); f.raiz.updateMatrixWorld(true);
+    [["L", 0.08], ["R", -0.08]].forEach(function (lr) {
+      const hueso = f.hueso["J_Bip_" + lr[0] + "_Foot"]; if (!hueso) { return; }
+      const g = new T3.Group();
+      const pl = new T3.Mesh(placa, mat); pl.position.set(0, -0.0045, 0.02); g.add(pl);
+      pos.forEach(function (p) { const t = new T3.Mesh(tap, mat); t.position.set(p[0], -0.0195, p[1]); g.add(t); });
+      g.children.forEach(function (c) {                              // de coordenadas del mundo (en reposo) a coordenadas del hueso
+        v.set(lr[1] + c.position.x, c.position.y + SUBE, c.position.z); f.raiz.localToWorld(v); hueso.worldToLocal(v);
+        c.position.copy(v); c.quaternion.copy(hueso.getWorldQuaternion(new T3.Quaternion()).invert().multiply(f.raiz.getWorldQuaternion(new T3.Quaternion())));
+        c.scale.setScalar(1 / (hueso.getWorldScale(new T3.Vector3()).x));
+      });
+      hueso.add(g);
+    });
+  }
   // o: { piel, pelo, camisa, manga (detalle), short, media, bota, guantes, identidad (ROMME: pelo y cara originales), lentes, barba, colBarba }
   function crear(o) {
     const raiz = new T.Group(), cadera = new T.Group(), torso = new T.Group(), cuello = new T.Group(), cabeza = new T.Group();
@@ -112,7 +170,8 @@ const Avatar3D = (function () {
     const piernas = [{ cad: new T.Group(), rod: new T.Group(), lado: 1, ul: H("L_UpperLeg"), ll: H("L_LowerLeg") }, { cad: new T.Group(), rod: new T.Group(), lado: -1, ul: H("R_UpperLeg"), ll: H("R_LowerLeg") }];
     const sombra = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: Per3D.texSombra(), transparent: true, depthWrite: false }));
     sombra.rotation.x = -Math.PI / 2; sombra.position.y = 0.012; raiz.add(sombra);
-    const f = { raiz: raiz, cadera: cadera, torso: torso, cuello: cuello, cabeza: cabeza, brazos: brazos, piernas: piernas, sombra: sombra, vrm: true };
+    modelo.position.y += SUBE;
+    const f = { modelo: modelo, raiz: raiz, cadera: cadera, torso: torso, cuello: cuello, cabeza: cabeza, brazos: brazos, piernas: piernas, sombra: sombra, vrm: true };
     // pone los huesos del modelo según los números de una pose (los mismos del muñeco)
     f.sync = function (p) {
       cadH.position.y = rest.J_Bip_C_Hips.y - p.bajo / ESCALA;
@@ -128,6 +187,8 @@ const Avatar3D = (function () {
       });
     };
     f.hueso = hueso;
+    if (!o.identidad || true) { tapones(f, o); }
+    if (o.dorsal != null || o.nombre) { espalda(f, o); }
     if (!o.identidad && (o.lentes || o.barba)) { accesorios(f, o); }
     f.cabezaHueso = H("C_Head"); f.hueso = hueso; f.escala = ESCALA;
     f.sync(Per3D.pose0());

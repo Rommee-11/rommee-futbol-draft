@@ -206,7 +206,7 @@ const PenalMundo = (function () {
     dibujar: function () { R.render(escena, cam); },
     ponerJugador: ponerJugador, ponerCamara: ponerCamara, zoom: zoom, animarRomme: animarRomme, CAM0: CAM0, LOOK0: LOOK0,
     kicker: function () { return kicker; }, keeper: function () { return keeper; }, balon: function () { return balon; }, sombraBalon: function () { return sombraBalon; }, red: function () { return red; }, huella: function () { return huella; }, marca: function () { return marca; },
-    cam: function () { return cam; }, GZ: GZ, BALON_R: BALON_R,
+    cam: function () { return cam; }, fovBase: function () { return fovBase; }, GZ: GZ, BALON_R: BALON_R,
     aplicar: aplicar, pose: { ESPERA: P_ESPERA, CARGA: P_CARGA, LAMENTO: P_LAMENTO, GK_ESPERA: G_ESPERA, GK_VUELO: G_VUELO }, posePateo: posePateo, pFesteja: pFesteja, mezcla: mezcla, suave: suave
   };
 })();
@@ -229,7 +229,7 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   const ZX = [-2.55, 0, 2.55], ZY = [0.5, 1.95];          // dónde queda cada zona del arco (metros): columnas izq/centro/der y filas abajo/arriba
   // Cámaras: 1) APUNTAR: de frente al arco (el pateador queda detrás de la cámara, no se ve). 2) SUBE: se aleja y rodea hasta quedar detrás del pateador. 3) PATADA: sigue la jugada desde atrás del pateador.
   const CAMF = new T.Vector3(0, 1.45, -1.6), LOOKF = new T.Vector3(0, 1.3, -11), CAMP_ = new T.Vector3(5.0, 2.6, -0.5), CAMP = new T.Vector3(3.0, 1.8, 6.2);
-  const G = 5.0, FIN = { gol: 2.9, ataja: 2.5, afuera: 2.1 };   // gravedad de la pelota y cuánto dura la escena después del golpe (en tiempo de jugada)
+  const G = 5.0, FIN = { gol: 3.7, ataja: 3.2, afuera: 2.9 };   // gravedad de la pelota y cuánto dura la escena después del golpe (en tiempo de jugada)
   let zonaSel = null, keeperTarde = false, impacto = false, tSube = 0, opPenal = null;
   let giroIni = 1.25, est = "off", raf = 0, ts0 = 0, tSuelta = 0, fija = 0, zIni = 2.9, lado = 1, destino = new T.Vector3(), dur = 0.6, res = null;
   const bv = new T.Vector3();
@@ -251,6 +251,21 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
     hint.innerHTML = zonaSel ? t.apuntas + t.f[zonaSel.f] + " · " + t.c[zonaSel.c] + "<small>" + t.listo + "</small>" : t.elegi + "<small>" + t.legend + "</small>";
   }
   function avisarZona() { hint.className = "hintZona alerta"; zon.classList.remove("late"); void zon.offsetWidth; zon.classList.add("late"); }
+  // ---------- Planos de cámara estilo TV: caras a media altura ----------
+  // dPlano: a qué distancia hay que poner la cámara para que "alto" metros llenen la pantalla con el zoom k
+  function dPlano(alto, k) { return alto / (2 * Math.tan(M.fovBase() * k * Math.PI / 360)); }
+  const K_PLANO = 0.55;                                              // lente "tele": suaviza la perspectiva y la cara se ve bien
+  const _a = new T.Vector3();
+  const mkPl = function () { return { pos: new T.Vector3(), mira: new T.Vector3(), k: 1 }; }, PLG = mkPl(), PLK = mkPl(), PLR = mkPl();
+  // plano de una figura: la cámara se pone adelante de su cara (rumbo = hacia donde mira + desvío), a la altura del pecho/cara
+  function plano(PL, fig, alto, desvio, hMira, k) {
+    const r = fig.raiz, th = r.rotation.y + desvio, d = dPlano(alto, k);
+    _a.set(r.position.x, hMira, r.position.z);
+    PL.mira.copy(_a); PL.pos.set(_a.x + Math.sin(th) * d, hMira + 0.12 + 0.05 * d, _a.z + Math.cos(th) * d); PL.k = k;
+    if (PL.pos.z < M.GZ + 2.4) { PL.pos.z = M.GZ + 2.4; }            // nunca adentro del arco
+    return PL;
+  }
+  function mezclaPlano(pos, mira, k, w) { _pc.lerp(pos, w); miraAct.lerp(mira, w); return 1 + (k - 1) * w; }
   // Tocaste una zona: queda marcada y la cámara se aleja para mostrar al jugador de espaldas y la barra
   function elegirZona(c, f) {
     if (est !== "apunta") { return; }
@@ -357,10 +372,22 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       k.raiz.position.set(0, 0, zIni); k.raiz.rotation.y = Math.PI - 1.25; M.aplicar(k, Object.assign({}, M.pose.ESPERA, { bajo: Math.sin(ts / 700) * 0.012 }));
       esperaKeeper(ts); M.zoom(1);
       if (est === "apunta") { M.ponerCamara(CAMF, LOOKF); }
-      else if (est === "sube") {                                         // la cámara se aleja y rodea hasta quedar detrás del pateador
-        const t = (ts - tSube) / 1000, e = M.suave((t - 0.3) / 1.2);
-        M.ponerCamara(bezier(CAMF, CAMP_, M.CAM0, e), _ob.copy(LOOKF).lerp(M.LOOK0, e));
-        if (t >= 1.6) { est = "espera"; btn.classList.remove("apagado"); }
+      else if (est === "sube") {                                         // planos de TV: primero la cara del arquero, después la del pateador, y la cámara se acomoda detrás de él
+        const t = (ts - tSube) / 1000, TA = 0.6, TB = 0.9, TC = 1.5, TD = 1.85, TE = 2.45, KG = M.keeper();
+        plano(PLG, KG, 1.9, 0.35, 1.45, K_PLANO); plano(PLK, k, 1.7, -0.45, 1.5, K_PLANO);
+        if (t < TA) {                                                    // 1) se acerca al arquero
+          const e = M.suave(t / TA); _pc.copy(CAMF).lerp(PLG.pos, e); _ob.copy(LOOKF).lerp(PLG.mira, e); M.zoom(1 + (K_PLANO - 1) * e);
+        } else if (t < TB) {                                             // 2) lo mira a la cara (leve acercamiento)
+          const e = (t - TA) / (TB - TA); _pc.copy(PLG.pos); _pc.x += 0.18 * e; _pc.z -= 0.25 * e; _ob.copy(PLG.mira); M.zoom(K_PLANO);
+        } else if (t < TC) {                                             // 3) vuela hacia el pateador
+          const e = M.suave((t - TB) / (TC - TB)); _pc.copy(PLG.pos).lerp(PLK.pos, e); _pc.y += 0.7 * Math.sin(e * Math.PI); _ob.copy(PLG.mira).lerp(PLK.mira, e); M.zoom(K_PLANO);
+        } else if (t < TD) {                                             // 4) cara del pateador
+          const e = (t - TC) / (TD - TC); _pc.copy(PLK.pos); _pc.x -= 0.12 * e; _pc.z += 0.12 * e; _ob.copy(PLK.mira); M.zoom(K_PLANO);
+        } else {                                                         // 5) se aleja hasta quedar detrás del pateador
+          const e = M.suave((t - TD) / (TE - TD)); _pc.copy(PLK.pos); _pc.x -= 0.12; _pc.z += 0.12; bezier(_pc, CAMP_, M.CAM0, e); _pc.copy(_bz); _ob.copy(PLK.mira).lerp(M.LOOK0, e); M.zoom(K_PLANO + (1 - K_PLANO) * e);
+        }
+        M.ponerCamara(_pc, _ob);
+        if (t >= TE) { est = "espera"; btn.classList.remove("apagado"); M.zoom(1); }
       } else { M.ponerCamara(M.CAM0, M.LOOK0); BAR.actualizar(ts); }
     } else if (est === "patada") {
       const u = (ts - tSuelta) / 1000 * VEL, zK = 0.62, gol = res.res === "gol", tImp = UG + dur, uR = Math.max(1.55, tImp - 0.1);
@@ -405,7 +432,18 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       const w = M.suave(uBalon / (dur * 0.5)); _ob.copy(M.LOOK0).lerp(_pa.set(b.position.x, b.position.y + 0.1, b.position.z), w);
       if (uBalon > dur) { _pa.set(destino.x * 0.08, 1.15, M.GZ + 0.5); _ob.lerp(_pa, M.suave((uBalon - dur) / 0.7)); }
       miraAct.lerp(_ob, 1 - Math.exp(-dtc * 6));
-      M.ponerCamara(_pc, miraAct); M.zoom(1 - 0.30 * M.suave((u - 0.5) / (tImp - 0.1)) - 0.04 * M.suave((uBalon - dur) / 1.2));
+      let zb = 1 - 0.30 * M.suave((u - 0.5) / (tImp - 0.1)) - 0.04 * M.suave((uBalon - dur) / 1.2);
+      _ob.copy(miraAct);
+      if (uBalon > dur) {                                                // ya pasó todo: plano de reacción (la cara del que festeja, del que se lamenta o del que ataja)
+        const wr = M.suave((uBalon - dur - 0.35) / 0.8), KG = M.keeper();
+        if (wr > 0) {
+          if (res.res === "gol") { plano(PLR, k, 1.7, 0.45, 1.45 + yy, K_PLANO); }
+          else if (res.res === "ataja") { plano(PLR, KG, 2.3, 0.3, KG.raiz.position.y + 1.0, K_PLANO); }
+          else { plano(PLR, k, 1.9, 0.3, 1.4, K_PLANO); }
+          _pc.lerp(PLR.pos, wr); _ob.lerp(PLR.mira, wr); zb += (K_PLANO - zb) * wr;
+        }
+      }
+      M.ponerCamara(_pc, _ob); M.zoom(zb);
     }
     M.dibujar();
     if (est !== "fin" && est !== "off") { raf = requestAnimationFrame(cuadro); }
