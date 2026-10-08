@@ -15,7 +15,7 @@ const PENAL3D_OK = (function () {
 
 const PenalMundo = (function () {
   let R = null;            // renderer
-  let escena, cam, kicker, keeper, romme, balon, sombraBalon, red, huella, listo = false, W = 0, H = 0, DPR = 1, firmaJugador = "";
+  let escena, cam, kicker, keeper, romme, balon, sombraBalon, red, huella, marca, listo = false, W = 0, H = 0, DPR = 1, firmaJugador = "";
   const GZ = -11;          // la línea de gol está a 11 m del punto penal (que es el origen)
   const BALON_R = 0.17;
   const T = THREE;
@@ -134,6 +134,8 @@ const PenalMundo = (function () {
     const inv = new T.MeshBasicMaterial({ visible: false });
     red = new T.Mesh(new T.BoxGeometry(7.32, 2.44, 2.0), [mr(2, 3), mr(2, 3), mr(10, 2), inv, inv, mr(10, 3)]);
     red.position.set(0, 1.22, -1.0); arco.add(red);
+    marca = new T.Mesh(new T.RingGeometry(0.26, 0.4, 36), new T.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.95, side: T.DoubleSide, depthTest: false, depthWrite: false }));
+    marca.renderOrder = 20; marca.visible = false; marca.position.z = GZ + 0.12; escena.add(marca);       // anillo dorado que marca a dónde apuntaste
     huella = new T.Mesh(new T.SphereGeometry(BALON_R * 1.35, 14, 10), new T.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0, depthWrite: false })); huella.visible = false; escena.add(huella);
     [-3.66, 3.66].forEach(function (x) { const pp = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 2.5, 8), blanco); pp.position.set(x, 1.22, -2.0); arco.add(pp); });
     escena.add(arco);
@@ -195,7 +197,7 @@ const PenalMundo = (function () {
     puntoFrente: puntoFrente,
     dibujar: function () { R.render(escena, cam); },
     ponerJugador: ponerJugador, ponerCamara: ponerCamara, zoom: zoom, animarRomme: animarRomme, CAM0: CAM0, LOOK0: LOOK0,
-    kicker: function () { return kicker; }, keeper: function () { return keeper; }, balon: function () { return balon; }, sombraBalon: function () { return sombraBalon; }, red: function () { return red; }, huella: function () { return huella; },
+    kicker: function () { return kicker; }, keeper: function () { return keeper; }, balon: function () { return balon; }, sombraBalon: function () { return sombraBalon; }, red: function () { return red; }, huella: function () { return huella; }, marca: function () { return marca; },
     cam: function () { return cam; }, GZ: GZ, BALON_R: BALON_R,
     aplicar: aplicar, pose: { ESPERA: P_ESPERA, CARGA: P_CARGA, LAMENTO: P_LAMENTO, GK_ESPERA: G_ESPERA, GK_VUELO: G_VUELO }, posePateo: posePateo, pFesteja: pFesteja, mezcla: mezcla, suave: suave
   };
@@ -208,18 +210,21 @@ const PenalMundo = (function () {
 //  panel = pantalla que muestra la ruleta (se oculta hasta que llega la pelota)
 // =====================================================================
 const TXT_ZONA = {
-  es: { elegi: "👆 Elegí a dónde patear", apuntas: "Apuntás: ", f: ["Abajo", "Arriba"], c: ["Izquierda", "Centro", "Derecha"], sin: "¡Primero elegí una zona del arco!" },
-  en: { elegi: "👆 Pick where to shoot", apuntas: "Aiming: ", f: ["Bottom", "Top"], c: ["Left", "Center", "Right"], sin: "Pick a zone of the goal first!" },
-  pt: { elegi: "👆 Escolha onde chutar", apuntas: "Mira: ", f: ["Baixo", "Alto"], c: ["Esquerda", "Centro", "Direita"], sin: "Escolha primeiro uma zona do gol!" },
-  it: { elegi: "👆 Scegli dove tirare", apuntas: "Mira: ", f: ["Basso", "Alto"], c: ["Sinistra", "Centro", "Destra"], sin: "Prima scegli una zona della porta!" }
+  es: { elegi: "👆 ELEGÍ DÓNDE PATEAR", legend: "★ = premio: más estrellas, más riesgo", apuntas: "🎯 Apuntás: ", listo: "¡Apretá PATEA con la línea en el verde!", f: ["Abajo", "Arriba"], c: ["Izquierda", "Centro", "Derecha"], sin: "¡Primero elegí una zona del arco!" },
+  en: { elegi: "👆 PICK WHERE TO SHOOT", legend: "★ = reward: more stars, more risk", apuntas: "🎯 Aiming: ", listo: "Press KICK with the line in the green!", f: ["Bottom", "Top"], c: ["Left", "Center", "Right"], sin: "Pick a zone of the goal first!" },
+  pt: { elegi: "👆 ESCOLHA ONDE CHUTAR", legend: "★ = prêmio: mais estrelas, mais risco", apuntas: "🎯 Mira: ", listo: "Aperte CHUTA com a linha no verde!", f: ["Baixo", "Alto"], c: ["Esquerda", "Centro", "Direita"], sin: "Escolha primeiro uma zona do gol!" },
+  it: { elegi: "👆 SCEGLI DOVE TIRARE", legend: "★ = premio: più stelle, più rischio", apuntas: "🎯 Mira: ", listo: "Premi TIRA con la linea nel verde!", f: ["Basso", "Alto"], c: ["Sinistra", "Centro", "Destra"], sin: "Prima scegli una zona della porta!" }
 };
 function txtZona() { return TXT_ZONA[(typeof ajustes !== "undefined" && ajustes.idioma) || "es"] || TXT_ZONA.es; }
 function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   const M = PenalMundo, T = THREE;
   const ZX = [-2.55, 0, 2.55], ZY = [0.5, 1.95];          // dónde queda cada zona del arco (metros): columnas izq/centro/der y filas abajo/arriba
-  let zonaSel = null, keeperTarde = false;
-  const Z_APUNTAR = 0.9;                                  // mientras apuntás la cámara se acerca un poco para que el arco se vea más grande
-  let giroIni = 1.25, est = "off", raf = 0, ts0 = 0, tSuelta = 0, fija = 0, zIni = 2.9, lado = 1, destino = new T.Vector3(), dur = 0.6, frente = null, res = null;
+  // Cámaras: 1) APUNTAR: de frente al arco (el pateador queda detrás de la cámara, no se ve). 2) SUBE: se aleja y rodea hasta quedar detrás del pateador. 3) PATADA: sigue la jugada desde atrás del pateador.
+  const CAMF = new T.Vector3(0, 1.45, -1.6), LOOKF = new T.Vector3(0, 1.3, -11), CAMP_ = new T.Vector3(5.0, 2.6, -0.5), CAMP = new T.Vector3(3.0, 1.8, 6.2);
+  const G = 5.0, FIN = { gol: 2.9, ataja: 2.5, afuera: 2.1 };   // gravedad de la pelota y cuánto dura la escena después del golpe (en tiempo de jugada)
+  let zonaSel = null, keeperTarde = false, impacto = false, tSube = 0, opPenal = null;
+  let giroIni = 1.25, est = "off", raf = 0, ts0 = 0, tSuelta = 0, fija = 0, zIni = 2.9, lado = 1, destino = new T.Vector3(), dur = 0.6, res = null;
+  const bv = new T.Vector3();
   const BAR = BarraTiming.crear(relleno.parentNode, relleno);
   const rt = document.createElement("div"); rt.className = "resPenal"; if (panel) { panel.appendChild(rt); }
   // ---------- Las 6 zonas del arco para apuntar (botones transparentes encima del arco 3D) ----------
@@ -228,16 +233,24 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   const zb = [], ESTRELLAS = [["★★", "★", "★★"], ["★★★", "★★", "★★★"]];       // premio de cada zona (fila 0 abajo, fila 1 arriba)
   [1, 0].forEach(function (f) { [0, 1, 2].forEach(function (c) {
     const b = document.createElement("button"); b.type = "button"; b.className = "zonaT"; b.dataset.c = c; b.dataset.f = f; b.textContent = ESTRELLAS[f][c];
-    b.addEventListener("pointerdown", function (e) { e.stopPropagation(); if (e.preventDefault) { e.preventDefault(); } if (est === "espera") { zonaSel = { c: c, f: f }; pintarZonas(); } });
+    b.addEventListener("pointerdown", function (e) { e.stopPropagation(); if (e.preventDefault) { e.preventDefault(); } elegirZona(c, f); });
     zon.appendChild(b); zb.push(b);
   }); });
   function pintarZonas() {
     const t = txtZona();
     zb.forEach(function (b) { b.classList.toggle("sel", !!zonaSel && +b.dataset.c === zonaSel.c && +b.dataset.f === zonaSel.f); });
-    hint.className = "hintZona"; hint.textContent = zonaSel ? t.apuntas + t.f[zonaSel.f] + " · " + t.c[zonaSel.c] : t.elegi;
+    hint.className = "hintZona";
+    hint.innerHTML = zonaSel ? t.apuntas + t.f[zonaSel.f] + " · " + t.c[zonaSel.c] + "<small>" + t.listo + "</small>" : t.elegi + "<small>" + t.legend + "</small>";
   }
-  function avisarZona() {
-    const t = txtZona(); hint.textContent = t.sin; hint.className = "hintZona alerta"; zon.classList.remove("late"); void zon.offsetWidth; zon.classList.add("late");
+  function avisarZona() { hint.className = "hintZona alerta"; zon.classList.remove("late"); void zon.offsetWidth; zon.classList.add("late"); }
+  // Tocaste una zona: queda marcada y la cámara se aleja para mostrar al jugador de espaldas y la barra
+  function elegirZona(c, f) {
+    if (est !== "apunta") { return; }
+    zonaSel = { c: c, f: f }; pintarZonas();
+    const mk = M.marca(); mk.position.set(ZX[c], ZY[f], M.GZ + 0.12); mk.visible = true;
+    est = "sube"; tSube = ts0;
+    zon.classList.remove("m-apunta"); if (panel) { panel.classList.remove("apunta"); }
+    BAR.iniciar(opPenal);
   }
   function ubicarZonas() {                                           // proyecta el arco 3D a la pantalla para que cada botón quede justo sobre su zona
     const c = lienzo(); if (!c || !panel || !M.listo()) { return; }
@@ -248,11 +261,9 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
     zb.forEach(function (b) {
       const c0 = +b.dataset.c, f = +b.dataset.f, x0 = -3.66 + c0 * 2.44, x1 = x0 + 2.44, y0 = f * 1.22, y1 = y0 + 1.22;
       const p = [pt(x0, y0), pt(x1, y0), pt(x0, y1), pt(x1, y1)], xs = p.map(function (a) { return a[0]; }), ys = p.map(function (a) { return a[1]; });
-      let L = Math.min.apply(null, xs), Rr = Math.max.apply(null, xs), Tt = Math.min.apply(null, ys), Bb = Math.max.apply(null, ys);
-      if (f === 1) { Tt -= 14; } else { Bb += 14; } if (c0 === 0) { L -= 10; } if (c0 === 2) { Rr += 10; }          // zona de toque un poco más grande que el dibujo
+      const L = Math.min.apply(null, xs), Rr = Math.max.apply(null, xs), Tt = Math.min.apply(null, ys), Bb = Math.max.apply(null, ys);
       b.style.left = L.toFixed(1) + "px"; b.style.top = Tt.toFixed(1) + "px"; b.style.width = (Rr - L).toFixed(1) + "px"; b.style.height = (Bb - Tt).toFixed(1) + "px";
     });
-    hint.style.top = Math.max(4, Math.min.apply(null, zb.map(function (b) { return parseFloat(b.style.top); })) - 44) + "px";
   }
   function lienzo() { return M.renderer() ? M.renderer().domElement : null; }
   function ponerPelotaEnElPunto() {
@@ -268,11 +279,12 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   function elegirTiro(r) {
     const t = r.tiro, jx = (Math.random() - 0.5) * 0.5, jy = (Math.random() - 0.5) * 0.3;
     lado = t.c === 0 ? -1 : (t.c === 2 ? 1 : (Math.random() < 0.5 ? -1 : 1));
-    if (r.res === "gol") { destino.set(ZX[t.c] + jx, ZY[t.f] + jy, M.GZ - 0.5 - Math.random() * 0.8); }
+    if (r.res === "gol") { destino.set(ZX[t.c] + jx, ZY[t.f] + jy, M.GZ - 0.5 - Math.random() * 0.5); }
     else if (r.res === "ataja") { destino.set(ZX[t.c] + jx * 0.4, ZY[t.f] + jy * 0.4, M.GZ + 0.5); }
     else if (t.f === 1) { destino.set(ZX[t.c] + jx, 3.0 + Math.random() * 0.6, M.GZ - 0.4); }           // arriba: por encima del travesaño
     else { destino.set(lado * (4.5 + Math.random() * 1.0), 0.6 + Math.random() * 1.2, M.GZ - 0.4); }    // abajo: pasa al costado del palo
     keeperTarde = r.res === "gol" && r.keeper.c === t.c && r.keeper.f === t.f;                        // adivinó la zona pero el tiro era muy bueno: llega tarde
+    impacto = false;
   }
   function esperaKeeper(ts) {
     const g = M.keeper(), s = Math.sin(ts / 520);
@@ -295,11 +307,32 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       M.aplicar(g, M.mezcla(M.pose.GK_ESPERA, M.pose.GK_VUELO, (alto ? 1 : 0.4) * k));
     }
   }
-  const CAMA = new T.Vector3(1.5, 1.8, 4.9), CAM1 = new T.Vector3(-0.5, 1.8, -17.6), CAMC = new T.Vector3(9.5, 2.7, -12.5);
-  let _s0 = null;
-  const UG = 1.22, LENTO = 1.6, FASE2 = 1.0, VEL = 1.5;   // VEL: ritmo general de la jugada (carrera, patada, vuelo)   // LENTO: cámara lenta del vuelo; FASE2: giro hasta detrás de la red
+  // Después del golpe la pelota sigue sola: queda en la red (gol), rebota lejos de las manos (ataja) o sigue de largo (afuera)
+  function iniciarLibre(r) {
+    const sg = destino.x >= 0 ? 1 : -1;
+    if (r === "gol") { bv.set(destino.x / dur * 0.08, 0.3, -2.4); }
+    else if (r === "ataja") { bv.set(sg * (1.2 + Math.random() * 1.6), 2.2 + Math.random() * 1.4, 3.8 + Math.random() * 2.0); }
+    else { bv.set(destino.x / dur * 0.85, (destino.y - M.BALON_R - 1.4) / dur * 0.9, destino.z / dur * 0.8); }
+  }
+  function integrar(du, r) {
+    const b = M.balon(), p = b.position, R = M.BALON_R;
+    bv.y -= G * du; p.x += bv.x * du; p.y += bv.y * du; p.z += bv.z * du;
+    if (r === "gol") {                                                   // adentro de la red: no puede salir
+      if (p.z < M.GZ - 1.85) { p.z = M.GZ - 1.85; bv.z *= -0.15; bv.x *= 0.6; }
+      if (p.x > 3.45) { p.x = 3.45; bv.x *= -0.2; } if (p.x < -3.45) { p.x = -3.45; bv.x *= -0.2; }
+      if (p.y > 2.3) { p.y = 2.3; bv.y = -Math.abs(bv.y) * 0.2; }
+    } else if (p.z < M.GZ - 5.9) { p.z = M.GZ - 5.9; bv.z *= -0.25; bv.x *= 0.7; }      // el cartel de atrás frena la pelota
+    if (p.y < R) {
+      p.y = R;
+      if (bv.y < 0) { bv.y = -bv.y * 0.45; if (bv.y < 0.9) { bv.y = 0; } bv.x *= 0.82; bv.z *= 0.82; }
+      if (bv.y === 0) { const f = Math.exp(-1.6 * du); bv.x *= f; bv.z *= f; }               // rueda y se va frenando
+    }
+    b.rotation.x += bv.z * du / R * 0.9; b.rotation.z -= bv.x * du / R * 0.9;
+    M.sombraBalon().visible = true; M.sombraBalon().position.set(p.x, 0.015, p.z); M.sombraBalon().scale.setScalar(0.9 * (1 - 0.5 * Math.min(1, p.y / 2)));
+  }
+  const UG = 1.22, LENTO = 1.6, VEL = 1.5;   // VEL: ritmo general de la jugada (carrera, patada, vuelo)   // LENTO: cámara lenta del vuelo
   let tPrev = 0, miraAct = new T.Vector3();
-  const _pc = new T.Vector3(), _bz = new T.Vector3(), _ob = new T.Vector3(), _pa = new T.Vector3(), reposo = new T.Vector3();
+  const _pc = new T.Vector3(), _bz = new T.Vector3(), _ob = new T.Vector3(), _pa = new T.Vector3();
   function bezier(a, c, b2, t) { const m = 1 - t; return _bz.set(m * m * a.x + 2 * m * t * c.x + t * t * b2.x, m * m * a.y + 2 * m * t * c.y + t * t * b2.y, m * m * a.z + 2 * m * t * c.z + t * t * b2.z); }
   function mostrarRes(r) {
     const d = (typeof L === "function") ? L() : {};
@@ -309,24 +342,32 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   function cuadro(ts) {
     const dtc = Math.min(0.05, Math.max(0, (ts - (tPrev || ts)) / 1000)); tPrev = ts;
     ts0 = ts; if (est === "off" || est === "fin") { return; }
-    const k = M.kicker(), b = M.balon();
+    const k = M.kicker(), b = M.balon(), mk = M.marca();
     M.animarRomme(ts);
-    if (est === "espera") {
-      const resp = Math.sin(ts / 700) * 0.012;
-      k.raiz.position.set(0, 0, zIni); k.raiz.rotation.y = Math.PI - 1.25; M.aplicar(k, Object.assign({}, M.pose.ESPERA, { bajo: resp }));
-      esperaKeeper(ts); M.ponerCamara(M.CAM0, M.LOOK0); M.zoom(Z_APUNTAR);
-      BAR.actualizar(ts);
+    if (mk.visible) { const sc = 1 + 0.12 * Math.sin(ts / 160); mk.scale.set(sc, sc, 1); }
+    if (est === "apunta" || est === "sube" || est === "espera") {
+      k.raiz.position.set(0, 0, zIni); k.raiz.rotation.y = Math.PI - 1.25; M.aplicar(k, Object.assign({}, M.pose.ESPERA, { bajo: Math.sin(ts / 700) * 0.012 }));
+      esperaKeeper(ts); M.zoom(1);
+      if (est === "apunta") { M.ponerCamara(CAMF, LOOKF); }
+      else if (est === "sube") {                                         // la cámara se aleja y rodea hasta quedar detrás del pateador
+        const t = (ts - tSube) / 1000, e = M.suave((t - 0.3) / 1.2);
+        M.ponerCamara(bezier(CAMF, CAMP_, M.CAM0, e), _ob.copy(LOOKF).lerp(M.LOOK0, e));
+        if (t >= 1.6) { est = "espera"; btn.classList.remove("apagado"); }
+      } else { M.ponerCamara(M.CAM0, M.LOOK0); BAR.actualizar(ts); }
     } else if (est === "patada") {
-      const u = (ts - tSuelta) / 1000 * VEL, zK = 0.62, gol = res.res === "gol";
+      const u = (ts - tSuelta) / 1000 * VEL, zK = 0.62, gol = res.res === "gol", tImp = UG + dur, uR = Math.max(1.55, tImp - 0.1);
+      const zBase = function (x) { return zK - 0.15 - 0.3 * Math.min(1, (x - 1.6) / 1.5); };
       let zz, yy = 0;
       if (u < 1.0) { zz = zIni + (zK - zIni) * M.suave(u / 1.0); }
       else if (u < 1.6) { zz = zK - (u - 1.0) * 0.25; if (u > 1.3 && u < 1.55) { yy = 0.08 * Math.sin((u - 1.3) / 0.25 * Math.PI); } }
-      else if (gol) { const v = Math.min(u - 1.6, 1.8); zz = zK - 0.15 - 1.7 * v - 1.7 * v * v; yy = 0.06 * Math.abs(Math.sin(v * 9)); }
-      else { zz = zK - 0.15 - 0.3 * Math.min(1, (u - 1.6) / 1.5); }
-      k.raiz.position.set(0, yy, zz);
-      k.raiz.rotation.y = Math.PI - giroIni * (1 - M.suave(u / 0.4));
+      else if (gol && u > uR) { const v = Math.min(u - uR, 1.8); zz = zBase(uR) - 1.45 * v - 1.45 * v * v; yy = 0.06 * Math.abs(Math.sin(v * 9)); }   // festeja corriendo hacia el arco
+      else { zz = zBase(u); }
+      let xx = 0, vdir = res.tiro.c === 2 ? -1 : 1;                      // al festejar se abre hacia el costado contrario al de la jugada, así no tapa la pelota
+      if (gol && u > uR) { xx = vdir * 3.0 * M.suave((u - uR) / 1.6); }
+      k.raiz.position.set(xx, yy, zz);
+      k.raiz.rotation.y = Math.PI - giroIni * (1 - M.suave(u / 0.4)) - (gol && u > uR ? vdir * 0.6 * M.suave((u - uR) / 0.5) : 0);
       let pz = M.posePateo(Math.min(u, 1.55));
-      if (u > 1.55) { pz = gol ? M.mezcla(pz, M.pFesteja((u - 1.55) * 2 * Math.PI * 1.9), M.suave((u - 1.55) / 0.4)) : M.mezcla(pz, M.pose.LAMENTO, M.suave((u - 1.55) / 0.6)); }
+      if (u > uR) { pz = gol ? M.mezcla(pz, M.pFesteja((u - uR) * 2 * Math.PI * 1.9), M.suave((u - uR) / 0.4)) : M.mezcla(pz, M.pose.LAMENTO, M.suave((u - uR) / 0.6)); }
       M.aplicar(k, pz);
       const uBalon = u - UG;
       moverKeeper(Math.max(0, uBalon), ts);
@@ -337,61 +378,51 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
           b.position.set(destino.x * t, y0 + (destino.y - y0) * t + 0.9 * Math.sin(t * Math.PI) * (1 - 0.5 * t), destino.z * t);
           M.sombraBalon().position.set(b.position.x, 0.015, b.position.z); M.sombraBalon().scale.setScalar(0.9 * (1 - 0.5 * Math.min(1, b.position.y / 2)));
           b.rotation.x += 0.4; b.rotation.y += 0.25;
-        } else {                                              // toca la red / el arquero y SIN frenar sigue hasta la pantalla y se vuelve ruleta
-          const t2 = uBalon - dur, r = res.res, HOLD = 0.14, T2 = FASE2 + 0.1;
-          M.sombraBalon().visible = false;
-          frente = M.puntoFrente();                         // siempre delante de la cámara de ESTE momento (la cámara se mueve)
-          if (t2 < 0.05) { mostrarRes(r); }
-          if (t2 > 0.7) { rt.className = "resPenal"; }
-          if (!_s0) { _s0 = new T.Vector3(); }
-          if (t2 < HOLD) {                                   // contacto: se hunde un poco en la red / choca con el arquero, sin frenar en seco
-            const h = M.suave(t2 / HOLD);
-            b.position.set(destino.x, destino.y, destino.z - (r === "gol" ? 0.4 : (r === "ataja" ? -0.15 : 0.1)) * h);
-            _s0.copy(b.position); b.rotation.x += 0.3; b.rotation.y += 0.2;
-          } else {                                           // y desde ahí sigue hacia la pantalla y se vuelve ruleta
-            const t = Math.min(1, (t2 - HOLD) / (T2 - HOLD)), cp = M.cam().position, d0 = _s0.distanceTo(cp), d1 = frente.distanceTo(cp);
-            const tt = t * (0.2 + 0.8 * t), dd = 1 / ((1 - tt) / d0 + tt / d1), e = Math.max(0, Math.min(1, (d0 - dd) / (d0 - d1)));
-            b.position.set(_s0.x + (frente.x - _s0.x) * e, _s0.y + (frente.y - _s0.y) * e, _s0.z + (frente.z - _s0.z) * e);
-            b.rotation.x += 0.3; b.rotation.y += 0.2;
-            if (t >= 1 && est === "patada") { est = "llegada"; terminar(); }
-          }
+        } else {                                              // golpea la red / las manos del arquero y la pelota sigue sola
+          const t2 = uBalon - dur, r = res.res;
+          if (!impacto) { impacto = true; b.position.copy(destino); iniciarLibre(r); mostrarRes(r); }
+          integrar(dtc * VEL, r);
+          if (t2 > 1.7) { rt.className = "resPenal"; }
           if (r === "gol" && t2 < 0.55) {                    // la red se estira y marca la forma de la pelota
-            const k = Math.sin(Math.min(1, t2 / 0.55) * Math.PI), sq = Math.min(1, t2 / 0.12);
-            M.red().scale.z = 1 + 0.3 * k; H.visible = true; H.material.opacity = 0.85 * (1 - t2 / 0.55) * sq;
-            H.position.set(destino.x, destino.y, destino.z - 0.12 - 0.1 * k); H.scale.set(1 + 0.25 * k, 1 + 0.25 * k, 0.7 + 0.5 * k);
+            const kk = Math.sin(Math.min(1, t2 / 0.55) * Math.PI), sq = Math.min(1, t2 / 0.12);
+            M.red().scale.z = 1 + 0.3 * kk; H.visible = true; H.material.opacity = 0.85 * (1 - t2 / 0.55) * sq;
+            H.position.set(destino.x, destino.y, destino.z - 0.12 - 0.1 * kk); H.scale.set(1 + 0.25 * kk, 1 + 0.25 * kk, 0.7 + 0.5 * kk);
           } else { M.red().scale.z = 1; H.visible = false; }
+          if (t2 > FIN[r] && est === "patada") { est = "llegada"; terminar(); }
         }
       } else { b.position.set(0, M.BALON_R, 0); }
-      // cámara de cine: 1) detrás del jugador siguiendo la trayectoria, 2) mientras entra, gira hasta detrás de la red con la pelota al centro
-      const s1 = M.suave((u - 0.3) / (UG + dur - 0.3)), s2 = M.suave((uBalon - (dur - 0.1)) / FASE2);
-      const w = M.suave(uBalon / (dur * 0.5)), objetivo = _ob.copy(M.LOOK0).lerp(_pa.set(b.position.x, b.position.y + 0.1, b.position.z), w);
-      miraAct.lerp(objetivo, 1 - Math.exp(-dtc * (s2 > 0 ? 9 : 7)));
-      M.ponerCamara(bezier(_pc.copy(M.CAM0).lerp(CAMA, s1), CAMC, CAM1, s2), miraAct); M.zoom((Z_APUNTAR + (1 - Z_APUNTAR) * M.suave(u / 0.6)) * (1 - 0.12 * s1 - 0.1 * s2));
+      // cámara desde atrás del pateador: lo sigue, se acerca despacio y después del golpe mira cómo queda todo en el arco
+      const p1 = M.suave(u / (tImp + 0.6));
+      _pc.copy(M.CAM0).lerp(CAMP, p1);
+      const w = M.suave(uBalon / (dur * 0.5)); _ob.copy(M.LOOK0).lerp(_pa.set(b.position.x, b.position.y + 0.1, b.position.z), w);
+      if (uBalon > dur) { _pa.set(destino.x * 0.08, 1.15, M.GZ + 0.5); _ob.lerp(_pa, M.suave((uBalon - dur) / 0.7)); }
+      miraAct.lerp(_ob, 1 - Math.exp(-dtc * 6));
+      M.ponerCamara(_pc, miraAct); M.zoom(1 - 0.30 * M.suave((u - 0.5) / (tImp - 0.1)) - 0.04 * M.suave((uBalon - dur) / 1.2));
     }
     M.dibujar();
     if (est !== "fin" && est !== "off") { raf = requestAnimationFrame(cuadro); }
   }
   function terminar(rapido) {
-    const c = lienzo(); rt.className = "resPenal";
-    if (panel) { panel.classList.remove("pre"); const fl = document.createElement("div"); fl.className = "flashPenal"; panel.appendChild(fl); setTimeout(function () { if (fl.parentNode) { fl.parentNode.removeChild(fl); } }, 900); }
-    cuando(fija, res);                                 // la ruleta aparece (y empieza a girar) justo donde estaba la pelota
-    if (c) { c.style.transition = "opacity " + (rapido ? ".15s" : ".7s") + " ease-in"; c.style.opacity = "0"; }
-    setTimeout(function () { est = "fin"; if (c) { c.style.display = "none"; } }, rapido ? 180 : 750);
+    const c = lienzo(); rt.className = "resPenal"; M.marca().visible = false;
+    if (panel) { panel.classList.remove("pre", "apunta"); const fl = document.createElement("div"); fl.className = "flashPenal"; panel.appendChild(fl); setTimeout(function () { if (fl.parentNode) { fl.parentNode.removeChild(fl); } }, 900); }
+    cuando(fija, res);                                 // aparece la ruleta (y empieza a girar)
+    if (c) { c.style.transition = "opacity " + (rapido ? ".15s" : ".6s") + " ease-in"; c.style.opacity = "0"; }
+    setTimeout(function () { est = "fin"; if (c) { c.style.display = "none"; } }, rapido ? 180 : 650);
   }
   const NOM_ZONA = function () { return (typeof L === "function" && L().zonas) || null; };
   function patear() {                                  // se apretó PATEA: la línea se frena donde está
+    if (est === "apunta") { avisarZona(); return; }    // todavía falta elegir a dónde patear
     if (est !== "espera") { return; }
-    if (!zonaSel) { avisarZona(); return; }                          // primero hay que apuntar
     const r = BAR.parar(NOM_ZONA());
     if (!r) { return; }
-    res = BarraTiming.resolverTiro(zonaSel, r); fija = Math.random(); est = "patada"; tSuelta = ts0; btn.disabled = true; frente = null;
+    res = BarraTiming.resolverTiro(zonaSel, r); fija = Math.random(); est = "patada"; tSuelta = ts0; btn.disabled = true;
     zon.classList.add("oculta");
     dur = (0.62 - 0.22 * Math.random()) * LENTO; miraAct.copy(M.LOOK0);
-    elegirTiro(res); CAM1.x = destino.x * 0.3; alSoltar();
+    elegirTiro(res); alSoltar();
   }
   function saltar() {
-    if (est !== "espera" && est !== "patada") { return; }
-    if (est === "espera") { res = BarraTiming.resolverTiro(zonaSel || { c: Math.floor(Math.random() * 3), f: Math.floor(Math.random() * 2) }, { zona: "naranja" }); fija = Math.random(); alSoltar(); btn.disabled = true; BAR.detener(); zon.classList.add("oculta"); }
+    if (est !== "apunta" && est !== "sube" && est !== "espera" && est !== "patada") { return; }
+    if (est !== "patada") { res = BarraTiming.resolverTiro(zonaSel || { c: Math.floor(Math.random() * 3), f: Math.floor(Math.random() * 2) }, { zona: "naranja" }); fija = Math.random(); alSoltar(); btn.disabled = true; BAR.detener(); zon.classList.add("oculta"); }
     est = "skip"; terminar(true);
   }
   const bs = document.createElement("button"); bs.className = "btnSaltar"; bs.type = "button";
@@ -401,7 +432,7 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
   btn.addEventListener("pointerdown", function (e) { try { btn.setPointerCapture(e.pointerId); } catch (x) {} if (e.preventDefault) { e.preventDefault(); } patear(); });
   btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
   btn.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); patear(); } });
-  window.addEventListener("resize", function () { if (est !== "off" && est !== "fin" && M.listo()) { M.medir(); frente = null; if (est === "espera") { M.zoom(Z_APUNTAR); ubicarZonas(); } } });
+  window.addEventListener("resize", function () { if (est !== "off" && est !== "fin" && M.listo()) { M.medir(); M.zoom(1); if (est === "apunta") { M.ponerCamara(CAMF, LOOKF); ubicarZonas(); } } });
   return {
     reiniciar: function () {
       cancelAnimationFrame(raf);
@@ -411,18 +442,20 @@ function PatadaPenal(cv, btn, relleno, cuando, alSoltar, panel) {
       if (c.parentNode !== cv.parentNode || c.nextSibling !== cv) { cv.parentNode.insertBefore(c, cv); }
       c.className = "cvPatada gl"; c.style.display = "block"; c.style.transition = "none"; c.style.opacity = "1";
       cv.style.display = "none";
-      if (panel) { panel.classList.add("penal", "pre"); }
+      if (panel) { panel.classList.add("penal", "pre", "apunta"); }
       bs.textContent = (typeof L === "function" && L().saltar) || "Skip ⏭";
-      zonaSel = null; zon.classList.remove("oculta"); pintarZonas();
-      M.medir(); M.zoom(Z_APUNTAR); est = "espera"; res = null; btn.disabled = false; zIni = 2.9; giroIni = 1.25; frente = null; rt.className = "resPenal"; tPrev = 0;
-      BAR.iniciar(opcionesPenal());
+      zonaSel = null; impacto = false; opPenal = opcionesPenal();
+      zon.className = "zonasTiro m-apunta"; pintarZonas(); M.marca().visible = false;
+      M.medir(); M.zoom(1); M.ponerCamara(CAMF, LOOKF);
+      est = "apunta"; res = null; btn.disabled = false; btn.classList.add("apagado"); zIni = 2.9; giroIni = 1.25; rt.className = "resPenal"; tPrev = 0;
+      BAR.detener();
       ponerPelotaEnElPunto(); sombrasFiguras(); M.red().scale.z = 1; M.huella().visible = false; M.keeper().raiz.visible = true; M.keeper().raiz.rotation.set(0, 0, 0);
       raf = requestAnimationFrame(cuadro); ubicarZonas();
     },
     detener: function () {
-      cancelAnimationFrame(raf); est = "off"; BAR.detener(); rt.className = "resPenal";
+      cancelAnimationFrame(raf); est = "off"; BAR.detener(); rt.className = "resPenal"; try { M.marca().visible = false; } catch (e) {}
       const c = lienzo(); if (c && c.parentNode === cv.parentNode) { c.style.display = "none"; }
-      if (panel) { panel.classList.remove("penal", "pre"); }
+      if (panel) { panel.classList.remove("penal", "pre", "apunta"); }
     },
     estado: function () { return est; }
   };
