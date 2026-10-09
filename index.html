@@ -371,6 +371,8 @@ canvas.cvPatada.gl { z-index: -1; }
   #visorCreador .pie { flex-direction: row; flex-wrap: wrap; } #visorCreador .pie button { flex: 1 1 40%; font-size: 13px; padding: 7px 4px; } #visorCreador .pie #btnGuardarPerfil { flex: 1 1 100%; }
   #opcionesCreador { max-height: calc(100dvh - 54px); overflow-y: auto; }
 }
+#avisoAct { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 9999; display: none; align-items: center; justify-content: space-between; gap: 10px; background: #ffd23f; color: #0a2a5e; font-weight: 800; padding: 10px 12px; border-radius: 14px; box-shadow: 0 6px 22px rgba(0,0,0,.6); font-size: clamp(13px, 3.6vw, 16px); }
+#avisoAct button { background: #1a56c8; color: #fff; border: 2px solid #fff; border-radius: 999px; padding: 9px 16px; font-weight: 900; letter-spacing: .05em; cursor: pointer; flex: 0 0 auto; }
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b2a4a">
@@ -520,7 +522,30 @@ canvas.cvPatada.gl { z-index: -1; }
 
 <div id="fin" class="modal"><canvas id="cvFiesta"></canvas><div class="finGrid" id="finGrid"></div></div>
 
-<script>if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) { navigator.serviceWorker.register("sw.js").catch(function () {}); }</script>
+<div id="avisoAct" style="display:none"><span id="avisoActTxt"></span><button id="avisoActBtn" type="button"></button></div>
+<script>
+// Aviso de versión nueva: cuando hay una actualización aparece una barra con el botón ACTUALIZAR
+(function () {
+  if (!("serviceWorker" in navigator) || location.protocol.indexOf("http") !== 0) { return; }
+  const TX = { es: ["¡Hay una versión nueva del juego!", "ACTUALIZAR"], en: ["A new version of the game is available!", "UPDATE"], pt: ["Há uma nova versão do jogo!", "ATUALIZAR"], it: ["C'è una nuova versione del gioco!", "AGGIORNA"] };
+  let recargando = false;
+  function mostrar(w) {
+    let idioma = "es"; try { idioma = (JSON.parse(localStorage.getItem("rfd_ajustes")) || {}).idioma || "es"; } catch (e) {}
+    const t = TX[idioma] || TX.es, b = document.getElementById("avisoAct");
+    document.getElementById("avisoActTxt").textContent = t[0]; document.getElementById("avisoActBtn").textContent = t[1]; b.style.display = "flex";
+    document.getElementById("avisoActBtn").onclick = function () { this.disabled = true; w.postMessage("ACTUALIZAR"); setTimeout(function () { location.reload(); }, 2500); };
+  }
+  navigator.serviceWorker.register("sw.js").then(function (reg) {
+    function vigilar(r) { if (r.waiting && navigator.serviceWorker.controller) { mostrar(r.waiting); } }
+    vigilar(reg);
+    reg.addEventListener("updatefound", function () { const n = reg.installing; if (n) { n.addEventListener("statechange", function () { if (n.state === "installed" && navigator.serviceWorker.controller) { mostrar(n); } }); } });
+    const buscar = function () { try { reg.update(); } catch (e) {} };
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) { buscar(); } });   // al volver a abrir la app
+    setInterval(buscar, 30 * 60 * 1000);                                                                    // y cada 30 minutos si queda abierta
+  }).catch(function () {});
+  navigator.serviceWorker.addEventListener("controllerchange", function () { if (!recargando) { recargando = true; location.reload(); } });
+})();
+</script>
 <script src="datos/red.js"></script>
 <script src="datos/equipos.js"></script>
 <script src="datos/jugadores.js"></script>
